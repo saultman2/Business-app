@@ -1,22 +1,39 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BuildPro Construction Business Manager API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: clients
+    description: Client management
+  - name: jobs
+    description: Job/project management
+  - name: estimates
+    description: Estimate management
+  - name: estimate-items
+    description: Estimate line items
+  - name: materials
+    description: Material catalog
+  - name: photos
+    description: Job photos (before/after)
+  - name: receipts
+    description: Receipt management
+  - name: calendar
+    description: Calendar events / scheduling
+  - name: dashboard
+    description: Dashboard summary data
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +41,924 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ──────────────────────────────────────
+  # DASHBOARD
+  # ──────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Dashboard KPI summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  # ──────────────────────────────────────
+  # CLIENTS
+  # ──────────────────────────────────────
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List all clients
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a new client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Created client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get a client by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientUpdate"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /clients/{id}/history:
+    get:
+      operationId: getClientHistory
+      tags: [clients]
+      summary: Get client job history and totals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientHistory"
+
+  # ──────────────────────────────────────
+  # JOBS
+  # ──────────────────────────────────────
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List all jobs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create a new job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobInput"
+      responses:
+        "201":
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a job by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateJob
+      tags: [jobs]
+      summary: Update a job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobUpdate"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    delete:
+      operationId: deleteJob
+      tags: [jobs]
+      summary: Delete a job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /jobs/{id}/summary:
+    get:
+      operationId: getJobSummary
+      tags: [jobs]
+      summary: Get job financial and progress summary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobSummary"
+
+  # ──────────────────────────────────────
+  # ESTIMATES
+  # ──────────────────────────────────────
+  /estimates:
+    get:
+      operationId: listEstimates
+      tags: [estimates]
+      summary: List all estimates
+      parameters:
+        - name: jobId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of estimates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Estimate"
+    post:
+      operationId: createEstimate
+      tags: [estimates]
+      summary: Create a new estimate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateInput"
+      responses:
+        "201":
+          description: Created estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+
+  /estimates/{id}:
+    get:
+      operationId: getEstimate
+      tags: [estimates]
+      summary: Get an estimate by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateEstimate
+      tags: [estimates]
+      summary: Update an estimate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateUpdate"
+      responses:
+        "200":
+          description: Updated estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+    delete:
+      operationId: deleteEstimate
+      tags: [estimates]
+      summary: Delete an estimate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /estimates/{id}/send:
+    post:
+      operationId: sendEstimate
+      tags: [estimates]
+      summary: Mark estimate as sent to client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendEstimateInput"
+      responses:
+        "200":
+          description: Estimate sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+
+  # ──────────────────────────────────────
+  # ESTIMATE LINE ITEMS
+  # ──────────────────────────────────────
+  /estimates/{estimateId}/items:
+    get:
+      operationId: listEstimateItems
+      tags: [estimate-items]
+      summary: List all line items for an estimate
+      parameters:
+        - name: estimateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of estimate line items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EstimateItem"
+    post:
+      operationId: createEstimateItem
+      tags: [estimate-items]
+      summary: Add a line item to an estimate
+      parameters:
+        - name: estimateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateItemInput"
+      responses:
+        "201":
+          description: Created line item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstimateItem"
+
+  /estimates/{estimateId}/items/{itemId}:
+    patch:
+      operationId: updateEstimateItem
+      tags: [estimate-items]
+      summary: Update a line item
+      parameters:
+        - name: estimateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateItemUpdate"
+      responses:
+        "200":
+          description: Updated line item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstimateItem"
+    delete:
+      operationId: deleteEstimateItem
+      tags: [estimate-items]
+      summary: Delete a line item
+      parameters:
+        - name: estimateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ──────────────────────────────────────
+  # MATERIALS
+  # ──────────────────────────────────────
+  /materials:
+    get:
+      operationId: listMaterials
+      tags: [materials]
+      summary: List materials with optional price comparison
+      parameters:
+        - name: zipCode
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of materials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Material"
+    post:
+      operationId: createMaterial
+      tags: [materials]
+      summary: Create a material in the catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialInput"
+      responses:
+        "201":
+          description: Created material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+
+  /materials/{id}:
+    get:
+      operationId: getMaterial
+      tags: [materials]
+      summary: Get a material by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+    patch:
+      operationId: updateMaterial
+      tags: [materials]
+      summary: Update a material
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaterialUpdate"
+      responses:
+        "200":
+          description: Updated material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Material"
+    delete:
+      operationId: deleteMaterial
+      tags: [materials]
+      summary: Delete a material
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /materials/{id}/prices:
+    get:
+      operationId: getMaterialPrices
+      tags: [materials]
+      summary: Get supplier price comparison for a material
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Price comparison list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierPrice"
+    post:
+      operationId: addMaterialPrice
+      tags: [materials]
+      summary: Add a supplier price for a material
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierPriceInput"
+      responses:
+        "201":
+          description: Created price entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupplierPrice"
+
+  # ──────────────────────────────────────
+  # JOB PHOTOS
+  # ──────────────────────────────────────
+  /jobs/{jobId}/photos:
+    get:
+      operationId: listJobPhotos
+      tags: [photos]
+      summary: List all photos for a job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobPhoto"
+    post:
+      operationId: addJobPhoto
+      tags: [photos]
+      summary: Add a photo to a job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobPhotoInput"
+      responses:
+        "201":
+          description: Created photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobPhoto"
+
+  /jobs/{jobId}/photos/{photoId}:
+    patch:
+      operationId: updateJobPhoto
+      tags: [photos]
+      summary: Update a photo caption or type
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobPhotoUpdate"
+      responses:
+        "200":
+          description: Updated photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobPhoto"
+    delete:
+      operationId: deleteJobPhoto
+      tags: [photos]
+      summary: Delete a photo
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ──────────────────────────────────────
+  # RECEIPTS
+  # ──────────────────────────────────────
+  /receipts:
+    get:
+      operationId: listReceipts
+      tags: [receipts]
+      summary: List all receipts
+      parameters:
+        - name: jobId
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of receipts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Receipt"
+    post:
+      operationId: createReceipt
+      tags: [receipts]
+      summary: Create a new receipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptInput"
+      responses:
+        "201":
+          description: Created receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+
+  /receipts/{id}:
+    get:
+      operationId: getReceipt
+      tags: [receipts]
+      summary: Get a receipt by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+    patch:
+      operationId: updateReceipt
+      tags: [receipts]
+      summary: Update a receipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptUpdate"
+      responses:
+        "200":
+          description: Updated receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+    delete:
+      operationId: deleteReceipt
+      tags: [receipts]
+      summary: Delete a receipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ──────────────────────────────────────
+  # CALENDAR / EVENTS
+  # ──────────────────────────────────────
+  /events:
+    get:
+      operationId: listEvents
+      tags: [calendar]
+      summary: List calendar events
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: jobId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CalendarEvent"
+    post:
+      operationId: createEvent
+      tags: [calendar]
+      summary: Create a calendar event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarEventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEvent"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [calendar]
+      summary: Get an event by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEvent"
+    patch:
+      operationId: updateEvent
+      tags: [calendar]
+      summary: Update a calendar event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarEventUpdate"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEvent"
+    delete:
+      operationId: deleteEvent
+      tags: [calendar]
+      summary: Delete a calendar event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +966,704 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    # ── DASHBOARD ──
+    DashboardSummary:
+      type: object
+      properties:
+        activeJobsCount:
+          type: integer
+        pendingEstimatesCount:
+          type: integer
+        pendingEstimatesTotal:
+          type: number
+        thisMonthRevenue:
+          type: number
+        totalClientsCount:
+          type: integer
+        upcomingEventsCount:
+          type: integer
+        recentJobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        upcomingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEvent"
+      required:
+        - activeJobsCount
+        - pendingEstimatesCount
+        - pendingEstimatesTotal
+        - thisMonthRevenue
+        - totalClientsCount
+        - upcomingEventsCount
+        - recentJobs
+        - upcomingEvents
+
+    # ── CLIENTS ──
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        state:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, name, createdAt]
+
+    ClientInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        notes:
+          type: string
+      required: [name]
+
+    ClientUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        notes:
+          type: string
+
+    ClientHistory:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        totalJobs:
+          type: integer
+        completedJobs:
+          type: integer
+        totalRevenue:
+          type: number
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+      required: [clientId, totalJobs, completedJobs, totalRevenue, jobs]
+
+    # ── JOBS ──
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        clientId:
+          type: ["integer", "null"]
+        clientName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [lead, scheduled, in_progress, completed, cancelled]
+        description:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        state:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        estimatedValue:
+          type: ["number", "null"]
+        actualCost:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, title, status, createdAt]
+
+    JobInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        clientId:
+          type: integer
+        status:
+          type: string
+          enum: [lead, scheduled, in_progress, completed, cancelled]
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        estimatedValue:
+          type: number
+        notes:
+          type: string
+      required: [title]
+
+    JobUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        clientId:
+          type: integer
+        status:
+          type: string
+          enum: [lead, scheduled, in_progress, completed, cancelled]
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        estimatedValue:
+          type: number
+        actualCost:
+          type: number
+        notes:
+          type: string
+
+    JobSummary:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        estimateTotal:
+          type: number
+        receiptTotal:
+          type: number
+        photoCount:
+          type: integer
+        beforePhotoCount:
+          type: integer
+        afterPhotoCount:
+          type: integer
+        estimateCount:
+          type: integer
+        acceptedEstimateTotal:
+          type: number
+      required:
+        - jobId
+        - estimateTotal
+        - receiptTotal
+        - photoCount
+        - beforePhotoCount
+        - afterPhotoCount
+        - estimateCount
+        - acceptedEstimateTotal
+
+    # ── ESTIMATES ──
+    Estimate:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: ["integer", "null"]
+        jobTitle:
+          type: ["string", "null"]
+        clientId:
+          type: ["integer", "null"]
+        clientName:
+          type: ["string", "null"]
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, accepted, rejected, revised]
+        subtotal:
+          type: number
+        taxRate:
+          type: number
+        taxAmount:
+          type: number
+        total:
+          type: number
+        notes:
+          type: ["string", "null"]
+        sentAt:
+          type: ["string", "null"]
+        validUntil:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, title, status, subtotal, taxRate, taxAmount, total, createdAt]
+
+    EstimateInput:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [draft, sent, accepted, rejected, revised]
+        taxRate:
+          type: number
+        notes:
+          type: string
+        validUntil:
+          type: string
+      required: [title]
+
+    EstimateUpdate:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, accepted, rejected, revised]
+        taxRate:
+          type: number
+        notes:
+          type: string
+        validUntil:
+          type: string
+
+    SendEstimateInput:
+      type: object
+      properties:
+        clientEmail:
+          type: string
+        message:
+          type: string
+      required: [clientEmail]
+
+    # ── ESTIMATE ITEMS ──
+    EstimateItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        estimateId:
+          type: integer
+        description:
+          type: string
+        category:
+          type: string
+          enum: [labor, material, equipment, subcontractor, other]
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+        notes:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required: [id, estimateId, description, category, quantity, unit, unitPrice, totalPrice, sortOrder]
+
+    EstimateItemInput:
+      type: object
+      properties:
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum: [labor, material, equipment, subcontractor, other]
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPrice:
+          type: number
+        notes:
+          type: string
+        sortOrder:
+          type: integer
+      required: [description, category, quantity, unit, unitPrice]
+
+    EstimateItemUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        category:
+          type: string
+          enum: [labor, material, equipment, subcontractor, other]
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPrice:
+          type: number
+        notes:
+          type: string
+        sortOrder:
+          type: integer
+
+    # ── MATERIALS ──
+    Material:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        unit:
+          type: string
+        basePrice:
+          type: number
+        sku:
+          type: ["string", "null"]
+        lowesUrl:
+          type: ["string", "null"]
+        homeDepotUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, name, category, unit, basePrice, createdAt]
+
+    MaterialInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        basePrice:
+          type: number
+        sku:
+          type: string
+        lowesUrl:
+          type: string
+        homeDepotUrl:
+          type: string
+      required: [name, category, unit, basePrice]
+
+    MaterialUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        basePrice:
+          type: number
+        sku:
+          type: string
+        lowesUrl:
+          type: string
+        homeDepotUrl:
+          type: string
+
+    SupplierPrice:
+      type: object
+      properties:
+        id:
+          type: integer
+        materialId:
+          type: integer
+        supplierName:
+          type: string
+        price:
+          type: number
+        unit:
+          type: string
+        url:
+          type: ["string", "null"]
+        zipCode:
+          type: ["string", "null"]
+        inStock:
+          type: boolean
+        updatedAt:
+          type: string
+      required: [id, materialId, supplierName, price, unit, inStock, updatedAt]
+
+    SupplierPriceInput:
+      type: object
+      properties:
+        supplierName:
+          type: string
+          minLength: 1
+        price:
+          type: number
+        unit:
+          type: string
+        url:
+          type: string
+        zipCode:
+          type: string
+        inStock:
+          type: boolean
+      required: [supplierName, price, unit]
+
+    # ── JOB PHOTOS ──
+    JobPhoto:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        type:
+          type: string
+          enum: [before, after, progress, other]
+        imageUrl:
+          type: string
+        caption:
+          type: ["string", "null"]
+        takenAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, jobId, type, imageUrl, createdAt]
+
+    JobPhotoInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [before, after, progress, other]
+        imageUrl:
+          type: string
+          minLength: 1
+        caption:
+          type: string
+        takenAt:
+          type: string
+      required: [type, imageUrl]
+
+    JobPhotoUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [before, after, progress, other]
+        caption:
+          type: string
+        takenAt:
+          type: string
+
+    # ── RECEIPTS ──
+    Receipt:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: ["integer", "null"]
+        jobTitle:
+          type: ["string", "null"]
+        vendor:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+        category:
+          type: string
+          enum: [materials, labor, equipment, fuel, permits, other]
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, vendor, amount, date, category, createdAt]
+
+    ReceiptInput:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        vendor:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+        date:
+          type: string
+        category:
+          type: string
+          enum: [materials, labor, equipment, fuel, permits, other]
+        description:
+          type: string
+        imageUrl:
+          type: string
+      required: [vendor, amount, date, category]
+
+    ReceiptUpdate:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        vendor:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+        category:
+          type: string
+          enum: [materials, labor, equipment, fuel, permits, other]
+        description:
+          type: string
+        imageUrl:
+          type: string
+
+    # ── CALENDAR EVENTS ──
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: ["integer", "null"]
+        jobTitle:
+          type: ["string", "null"]
+        clientId:
+          type: ["integer", "null"]
+        clientName:
+          type: ["string", "null"]
+        title:
+          type: string
+        type:
+          type: string
+          enum: [estimate_visit, job_start, job_work, job_end, follow_up, meeting, other]
+        startDatetime:
+          type: string
+        endDatetime:
+          type: string
+        allDay:
+          type: boolean
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, title, type, startDatetime, endDatetime, allDay, createdAt]
+
+    CalendarEventInput:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [estimate_visit, job_start, job_work, job_end, follow_up, meeting, other]
+        startDatetime:
+          type: string
+        endDatetime:
+          type: string
+        allDay:
+          type: boolean
+        notes:
+          type: string
+      required: [title, type, startDatetime, endDatetime]
+
+    CalendarEventUpdate:
+      type: object
+      properties:
+        jobId:
+          type: integer
+        clientId:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+          enum: [estimate_visit, job_start, job_work, job_end, follow_up, meeting, other]
+        startDatetime:
+          type: string
+        endDatetime:
+          type: string
+        allDay:
+          type: boolean
+        notes:
+          type: string
