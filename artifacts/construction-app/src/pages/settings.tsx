@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useGetCompany, useUpdateCompany, getGetCompanyQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const updateCompany = useUpdateCompany();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const lastObjectPathRef = useRef<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -100,12 +101,13 @@ export default function SettingsPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
                   });
-                  const { uploadURL } = await res.json();
+                  const { uploadURL, objectPath } = await res.json();
+                  lastObjectPathRef.current = objectPath;
                   return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
                 }}
                 onComplete={async (result) => {
                   if (result.successful && result.successful.length > 0) {
-                    const objectPath = result.successful[0].response?.body?.objectPath;
+                    const objectPath = lastObjectPathRef.current;
                     if (objectPath) {
                       updateCompany.mutate(
                         { data: { logoUrl: `/api/storage${objectPath}` } },

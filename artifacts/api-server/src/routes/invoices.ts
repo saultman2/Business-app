@@ -18,6 +18,7 @@ import {
   CreatePaymentBody,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { ownsClient, ownsJob, ownsEstimate } from "../lib/ownership";
 import {
   serializeInvoice,
   serializePayment,
@@ -37,8 +38,20 @@ async function detail(companyId: number, id: number) {
       jobTitle: jobsTable.title,
     })
     .from(invoicesTable)
-    .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .leftJoin(jobsTable, eq(invoicesTable.jobId, jobsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(invoicesTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, companyId),
+      ),
+    )
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(invoicesTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, companyId),
+      ),
+    )
     .where(
       and(eq(invoicesTable.id, id), eq(invoicesTable.companyId, companyId)),
     );
@@ -73,8 +86,20 @@ router.get("/invoices", async (req, res): Promise<void> => {
       jobTitle: jobsTable.title,
     })
     .from(invoicesTable)
-    .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .leftJoin(jobsTable, eq(invoicesTable.jobId, jobsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(invoicesTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, req.companyId!),
+      ),
+    )
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(invoicesTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, req.companyId!),
+      ),
+    )
     .where(and(...conds))
     .orderBy(desc(invoicesTable.createdAt));
   res.json(
@@ -94,6 +119,14 @@ router.post("/invoices", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId)) ||
+    !(await ownsEstimate(req.companyId!, d.estimateId))
+  ) {
+    res.status(400).json({ error: "Invalid job, client, or estimate reference" });
+    return;
+  }
   const total = n(d.totalAmount ?? 0);
   const [invoice] = await db
     .insert(invoicesTable)
@@ -152,6 +185,13 @@ router.patch("/invoices/:id", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId))
+  ) {
+    res.status(400).json({ error: "Invalid job or client reference" });
+    return;
+  }
   const total = d.totalAmount !== undefined ? n(d.totalAmount) : n(existing.totalAmount);
   const paid = n(existing.amountPaid);
   const balanceDue = total - paid;

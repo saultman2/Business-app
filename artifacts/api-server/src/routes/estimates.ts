@@ -29,6 +29,7 @@ import {
   DeleteEstimateItemParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { ownsClient, ownsJob } from "../lib/ownership";
 import {
   serializeEstimate,
   serializeEstimateItem,
@@ -117,8 +118,20 @@ async function detail(companyId: number, estimateId: number) {
       jobTitle: jobsTable.title,
     })
     .from(estimatesTable)
-    .leftJoin(clientsTable, eq(estimatesTable.clientId, clientsTable.id))
-    .leftJoin(jobsTable, eq(estimatesTable.jobId, jobsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(estimatesTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, companyId),
+      ),
+    )
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(estimatesTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, companyId),
+      ),
+    )
     .where(
       and(
         eq(estimatesTable.id, estimateId),
@@ -157,8 +170,20 @@ router.get("/estimates", async (req, res): Promise<void> => {
       jobTitle: jobsTable.title,
     })
     .from(estimatesTable)
-    .leftJoin(clientsTable, eq(estimatesTable.clientId, clientsTable.id))
-    .leftJoin(jobsTable, eq(estimatesTable.jobId, jobsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(estimatesTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, req.companyId!),
+      ),
+    )
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(estimatesTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, req.companyId!),
+      ),
+    )
     .where(and(...conds))
     .orderBy(desc(estimatesTable.createdAt));
   res.json(
@@ -178,6 +203,13 @@ router.post("/estimates", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId))
+  ) {
+    res.status(400).json({ error: "Invalid job or client reference" });
+    return;
+  }
   const [est] = await db
     .insert(estimatesTable)
     .values({
@@ -263,6 +295,13 @@ router.patch("/estimates/:id", async (req, res): Promise<void> => {
     );
   if (!existing) {
     res.status(404).json({ error: "Estimate not found" });
+    return;
+  }
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId))
+  ) {
+    res.status(400).json({ error: "Invalid job or client reference" });
     return;
   }
   await db

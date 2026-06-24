@@ -29,7 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-lg">BuildPro</span>
         </div>
         <div className="flex items-center gap-4">
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
@@ -68,7 +68,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         
         <div className="hidden md:flex p-4 border-t items-center justify-between">
           <div className="text-sm font-medium text-muted-foreground">My Account</div>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </aside>
 

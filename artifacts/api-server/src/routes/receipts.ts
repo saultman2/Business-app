@@ -10,6 +10,7 @@ import {
   DeleteReceiptParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { ownsJob } from "../lib/ownership";
 import { serializeReceipt, toNumStr } from "../lib/serialize";
 
 const router: IRouter = Router();
@@ -29,7 +30,13 @@ router.get("/receipts", async (req, res): Promise<void> => {
   const rows = await db
     .select({ receipt: receiptsTable, jobTitle: jobsTable.title })
     .from(receiptsTable)
-    .leftJoin(jobsTable, eq(receiptsTable.jobId, jobsTable.id))
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(receiptsTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, req.companyId!),
+      ),
+    )
     .where(and(...conds))
     .orderBy(desc(receiptsTable.createdAt));
   res.json(rows.map((r) => serializeReceipt(r.receipt, r.jobTitle)));
@@ -42,6 +49,10 @@ router.post("/receipts", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (!(await ownsJob(req.companyId!, d.jobId))) {
+    res.status(400).json({ error: "Invalid job reference" });
+    return;
+  }
   const [receipt] = await db
     .insert(receiptsTable)
     .values({
@@ -92,6 +103,10 @@ router.patch("/receipts/:id", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (!(await ownsJob(req.companyId!, d.jobId))) {
+    res.status(400).json({ error: "Invalid job reference" });
+    return;
+  }
   const [receipt] = await db
     .update(receiptsTable)
     .set({

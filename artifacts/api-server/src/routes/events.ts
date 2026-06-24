@@ -10,6 +10,7 @@ import {
   DeleteEventParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { ownsClient, ownsJob } from "../lib/ownership";
 import { serializeEvent } from "../lib/serialize";
 
 const router: IRouter = Router();
@@ -32,8 +33,20 @@ router.get("/events", async (req, res): Promise<void> => {
       clientName: clientsTable.name,
     })
     .from(calendarEventsTable)
-    .leftJoin(jobsTable, eq(calendarEventsTable.jobId, jobsTable.id))
-    .leftJoin(clientsTable, eq(calendarEventsTable.clientId, clientsTable.id))
+    .leftJoin(
+      jobsTable,
+      and(
+        eq(calendarEventsTable.jobId, jobsTable.id),
+        eq(jobsTable.companyId, req.companyId!),
+      ),
+    )
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(calendarEventsTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, req.companyId!),
+      ),
+    )
     .where(and(...conds))
     .orderBy(asc(calendarEventsTable.startDatetime));
   res.json(
@@ -52,9 +65,17 @@ router.post("/events", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const d = parsed.data;
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId))
+  ) {
+    res.status(400).json({ error: "Invalid job or client reference" });
+    return;
+  }
   const [event] = await db
     .insert(calendarEventsTable)
-    .values({ ...parsed.data, companyId: req.companyId! })
+    .values({ ...d, companyId: req.companyId! })
     .returning();
   res.status(201).json(serializeEvent(event));
 });
@@ -92,9 +113,17 @@ router.patch("/events/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const d = parsed.data;
+  if (
+    !(await ownsJob(req.companyId!, d.jobId)) ||
+    !(await ownsClient(req.companyId!, d.clientId))
+  ) {
+    res.status(400).json({ error: "Invalid job or client reference" });
+    return;
+  }
   const [event] = await db
     .update(calendarEventsTable)
-    .set(parsed.data)
+    .set(d)
     .where(
       and(
         eq(calendarEventsTable.id, params.data.id),

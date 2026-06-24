@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRoute, Link } from "wouter";
 import { 
   useGetJob, 
@@ -36,6 +36,7 @@ export default function JobDetail() {
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const lastObjectPathRef = useRef<string | null>(null);
 
   const handleStatusChange = (newStatus: string) => {
     updateJob.mutate(
@@ -262,18 +263,19 @@ export default function JobDetail() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
                   });
-                  const { uploadURL } = await res.json();
+                  const { uploadURL, objectPath } = await res.json();
+                  lastObjectPathRef.current = objectPath;
                   return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
                 }}
                 onComplete={async (result) => {
                   if (result.successful && result.successful.length > 0) {
-                    const objectPath = result.successful[0].response?.body?.objectPath;
+                    const objectPath = lastObjectPathRef.current;
                     if (objectPath) {
                       createPhoto.mutate(
-                        { data: { type: "during", imageUrl: `/api/storage${objectPath}` } },
+                        { jobId: id, data: { type: "during", imageUrl: `/api/storage${objectPath}` } },
                         {
                           onSuccess: () => {
-                            queryClient.invalidateQueries({ queryKey: getListJobPhotosQueryKey({ jobId: id }) });
+                            queryClient.invalidateQueries({ queryKey: getListJobPhotosQueryKey(id) });
                             toast({ title: "Photo uploaded" });
                           }
                         }

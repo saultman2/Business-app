@@ -19,6 +19,7 @@ import {
   GetJobSummaryParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
+import { ownsClient } from "../lib/ownership";
 import { serializeJob, n, toNumStr } from "../lib/serialize";
 
 const router: IRouter = Router();
@@ -48,7 +49,13 @@ router.get("/jobs", async (req, res): Promise<void> => {
   const rows = await db
     .select({ job: jobsTable, clientName: clientsTable.name })
     .from(jobsTable)
-    .leftJoin(clientsTable, eq(jobsTable.clientId, clientsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(jobsTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, req.companyId!),
+      ),
+    )
     .where(and(...conds))
     .orderBy(desc(jobsTable.createdAt));
 
@@ -62,6 +69,10 @@ router.post("/jobs", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (!(await ownsClient(req.companyId!, d.clientId))) {
+    res.status(400).json({ error: "Invalid client reference" });
+    return;
+  }
   const [job] = await db
     .insert(jobsTable)
     .values({
@@ -78,7 +89,13 @@ async function loadJob(companyId: number, id: number) {
   const [row] = await db
     .select({ job: jobsTable, clientName: clientsTable.name })
     .from(jobsTable)
-    .leftJoin(clientsTable, eq(jobsTable.clientId, clientsTable.id))
+    .leftJoin(
+      clientsTable,
+      and(
+        eq(jobsTable.clientId, clientsTable.id),
+        eq(clientsTable.companyId, companyId),
+      ),
+    )
     .where(and(eq(jobsTable.id, id), eq(jobsTable.companyId, companyId)));
   return row;
 }
@@ -109,6 +126,10 @@ router.patch("/jobs/:id", async (req, res): Promise<void> => {
     return;
   }
   const d = parsed.data;
+  if (!(await ownsClient(req.companyId!, d.clientId))) {
+    res.status(400).json({ error: "Invalid client reference" });
+    return;
+  }
   const [updated] = await db
     .update(jobsTable)
     .set({
@@ -165,23 +186,38 @@ router.get("/jobs/:id/summary", async (req, res): Promise<void> => {
     return;
   }
   const jobId = params.data.id;
+  const cid = req.companyId!;
   const [[photos], [receipts], [estimates], [matList]] = await Promise.all([
     db
       .select({ c: count() })
       .from(jobPhotosTable)
-      .where(eq(jobPhotosTable.jobId, jobId)),
+      .where(
+        and(
+          eq(jobPhotosTable.jobId, jobId),
+          eq(jobPhotosTable.companyId, cid),
+        ),
+      ),
     db
       .select({ total: sum(receiptsTable.amount) })
       .from(receiptsTable)
-      .where(eq(receiptsTable.jobId, jobId)),
+      .where(
+        and(eq(receiptsTable.jobId, jobId), eq(receiptsTable.companyId, cid)),
+      ),
     db
       .select({ c: count() })
       .from(estimatesTable)
-      .where(eq(estimatesTable.jobId, jobId)),
+      .where(
+        and(eq(estimatesTable.jobId, jobId), eq(estimatesTable.companyId, cid)),
+      ),
     db
       .select({ c: count() })
       .from(materialListsTable)
-      .where(eq(materialListsTable.jobId, jobId)),
+      .where(
+        and(
+          eq(materialListsTable.jobId, jobId),
+          eq(materialListsTable.companyId, cid),
+        ),
+      ),
   ]);
 
   res.json({

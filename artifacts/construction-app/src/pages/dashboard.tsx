@@ -68,7 +68,7 @@ export default function Dashboard() {
             <HardHat className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.activeJobsCount}</div>
+            <div className="text-2xl font-bold">{summary.activeJobs}</div>
           </CardContent>
         </Card>
         
@@ -78,20 +78,20 @@ export default function Dashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.pendingEstimatesTotal)}</div>
+            <div className="text-2xl font-bold">{summary.estimatesSent}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {summary.pendingEstimatesCount} estimates out
+              {summary.estimatesDrafted} drafted
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month's Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Collected Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.thisMonthRevenue)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(summary.totalPaidAmount)}</div>
           </CardContent>
         </Card>
 
@@ -101,7 +101,7 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.totalClientsCount}</div>
+            <div className="text-2xl font-bold">{summary.totalClients}</div>
           </CardContent>
         </Card>
       </div>

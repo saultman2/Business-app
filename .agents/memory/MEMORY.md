@@ -1,0 +1,2 @@
+- [Object upload objectPath source](upload-objectpath.md) — capture objectPath from request-url response, NOT the empty GCS PUT response in Uppy onComplete.
+- [Multi-tenant scoping rules](multitenancy.md) — every query + leftJoin + FK reference must be companyId-scoped; client-supplied FK ids must be ownership-checked.
