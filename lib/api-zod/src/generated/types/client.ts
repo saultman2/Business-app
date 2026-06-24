@@ -24,4 +24,7 @@ export interface Client {
   /** @nullable */
   notes?: string | null;
   createdAt: string;
+  jobCount: number;
+  /** @nullable */
+  latestJobStatus?: string | null;
 }

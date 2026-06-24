@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ilike, desc } from "drizzle-orm";
+import { eq, and, ilike, or, desc, sql, getTableColumns } from "drizzle-orm";
 import { db, clientsTable, jobsTable } from "@workspace/db";
 import {
   ListClientsQueryParams,
@@ -23,16 +23,45 @@ router.get("/clients", async (req, res): Promise<void> => {
     res.status(400).json({ error: query.error.message });
     return;
   }
-  const conds = [eq(clientsTable.companyId, req.companyId!)];
+  const companyId = req.companyId!;
+  const conds = [eq(clientsTable.companyId, companyId)];
   if (query.data.search) {
-    conds.push(ilike(clientsTable.name, `%${query.data.search}%`));
+    const term = `%${query.data.search}%`;
+    conds.push(
+      or(
+        ilike(clientsTable.name, term),
+        ilike(clientsTable.phone, term),
+        ilike(clientsTable.address, term),
+        ilike(clientsTable.city, term),
+      )!,
+    );
   }
+
   const clients = await db
-    .select()
+    .select({
+      ...getTableColumns(clientsTable),
+      jobCount: sql<number>`(
+        SELECT count(*)::int FROM jobs
+        WHERE jobs.client_id = ${clientsTable.id}
+          AND jobs.company_id = ${companyId}
+      )`,
+      latestJobStatus: sql<string | null>`(
+        SELECT status FROM jobs
+        WHERE jobs.client_id = ${clientsTable.id}
+          AND jobs.company_id = ${companyId}
+        ORDER BY jobs.created_at DESC LIMIT 1
+      )`,
+    })
     .from(clientsTable)
     .where(and(...conds))
     .orderBy(clientsTable.name);
-  res.json(clients.map(serializeClient));
+
+  res.json(
+    clients.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString(),
+    })),
+  );
 });
 
 router.post("/clients", async (req, res): Promise<void> => {

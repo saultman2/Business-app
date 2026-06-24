@@ -1250,7 +1250,7 @@ components:
 
     Client:
       type: object
-      required: [id, name, createdAt]
+      required: [id, name, createdAt, jobCount]
       properties:
         id:
           type: integer
@@ -1272,6 +1272,10 @@ components:
           type: [string, "null"]
         createdAt:
           type: string
+        jobCount:
+          type: integer
+        latestJobStatus:
+          type: [string, "null"]
 
     ClientInput:
       type: object

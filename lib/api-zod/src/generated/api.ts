@@ -155,7 +155,9 @@ export const ListClientsResponseItem = zod.object({
   "state": zod.string().nullish(),
   "zipCode": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "jobCount": zod.number(),
+  "latestJobStatus": zod.string().nullish()
 })
 export const ListClientsResponse = zod.array(ListClientsResponseItem)
 
@@ -192,7 +194,9 @@ export const GetClientResponse = zod.object({
   "state": zod.string().nullish(),
   "zipCode": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "jobCount": zod.number(),
+  "latestJobStatus": zod.string().nullish()
 })
 
 
@@ -224,7 +228,9 @@ export const UpdateClientResponse = zod.object({
   "state": zod.string().nullish(),
   "zipCode": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "jobCount": zod.number(),
+  "latestJobStatus": zod.string().nullish()
 })
 
 
