@@ -3,7 +3,7 @@ import { useRoute, Link } from "wouter";
 import {
   useGetInvoice, useUpdateInvoice, useCreatePayment, useGetCompany,
 } from "@workspace/api-client-react";
-import type { InvoiceDetail as InvoiceDetailType, Company, Payment } from "@workspace/api-client-react";
+import type { Payment } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Printer, Plus, CheckCircle, Loader2, Pencil, Send, Download,
 } from "lucide-react";
-import { type LineItem, type Template, lineTotal } from "./invoice-types";
+import { type Template, lineTotal, parseLineItems } from "./invoice-types";
+import { InvoiceDocument } from "./invoice-document";
 import "./invoice-templates.css";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -31,129 +32,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   paid:    { label: "Paid",    variant: "outline" },
   overdue: { label: "Overdue", variant: "destructive" },
 };
-
-function InvoiceDocView({
-  template, invoice, company, lineItems,
-}: {
-  template: Template;
-  invoice: InvoiceDetailType;
-  company: Company | undefined;
-  lineItems: LineItem[];
-}) {
-  const logoUrl = company?.logoUrl ?? null;
-  const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
-  const taxRate = invoice.taxRate ?? 0;
-  const taxAmount = invoice.taxAmount ?? 0;
-  const total = subtotal + taxAmount;
-
-  return (
-    <div className={`invoice-doc template-${template} print-only`} id="invoice-document">
-      <div className={template === "bold" ? "inv-header-bold" : "inv-header-std"}>
-        <div className="inv-company-block">
-          {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
-          <div className="inv-company-name">{company?.name ?? ""}</div>
-          {company?.address && <div className="inv-company-meta">{company.address}</div>}
-          {(company?.phone || company?.email) && (
-            <div className="inv-company-meta">
-              {company.phone}{company.phone && company.email ? " · " : ""}{company.email}
-            </div>
-          )}
-        </div>
-        <div className="inv-number-block">
-          <div className="inv-label">INVOICE</div>
-          <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
-          <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
-          <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
-        </div>
-      </div>
-
-      <div className="inv-bill-row">
-        <div className="inv-bill-to">
-          <div className="inv-section-label">BILL TO</div>
-          <div className="inv-client-name">{invoice.clientName || "—"}</div>
-          {invoice.clientAddress && <div className="inv-client-addr">{invoice.clientAddress}</div>}
-        </div>
-        {invoice.jobTitle && (
-          <div className="inv-project">
-            <div className="inv-section-label">PROJECT</div>
-            <div className="inv-project-name">{invoice.jobTitle}</div>
-          </div>
-        )}
-      </div>
-
-      {invoice.servicesDescription && (
-        <div className="inv-services">
-          <div className="inv-section-label">SERVICES RENDERED</div>
-          <div className="inv-services-text">{invoice.servicesDescription}</div>
-        </div>
-      )}
-
-      <table className="inv-table">
-        <thead>
-          <tr>
-            <th className="inv-th inv-th-desc">Description</th>
-            <th className="inv-th inv-th-num">Qty</th>
-            <th className="inv-th inv-th-num">Unit</th>
-            <th className="inv-th inv-th-num">Unit Price</th>
-            <th className="inv-th inv-th-num inv-th-right">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lineItems.length === 0 ? (
-            <tr><td colSpan={5} className="inv-td inv-td-empty">No line items.</td></tr>
-          ) : (
-            lineItems.map((item) => (
-              <tr key={item.id}>
-                <td className="inv-td">{item.description}</td>
-                <td className="inv-td inv-td-num">{item.quantity}</td>
-                <td className="inv-td inv-td-num">{item.unit}</td>
-                <td className="inv-td inv-td-num">{formatCurrency(item.unitPrice)}</td>
-                <td className="inv-td inv-td-num inv-td-right">{formatCurrency(lineTotal(item))}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-        <tfoot>
-          {taxRate > 0 ? (
-            <>
-              <tr>
-                <td colSpan={4} className="inv-tf-label inv-tf-sub">Subtotal</td>
-                <td className="inv-tf-total inv-tf-sub">{formatCurrency(subtotal)}</td>
-              </tr>
-              <tr>
-                <td colSpan={4} className="inv-tf-label inv-tf-sub">Tax ({taxRate}%)</td>
-                <td className="inv-tf-total inv-tf-sub">{formatCurrency(taxAmount)}</td>
-              </tr>
-              <tr>
-                <td colSpan={4} className="inv-tf-label">Total</td>
-                <td className="inv-tf-total">{formatCurrency(total)}</td>
-              </tr>
-            </>
-          ) : (
-            <tr>
-              <td colSpan={4} className="inv-tf-label">Total</td>
-              <td className="inv-tf-total">{formatCurrency(subtotal)}</td>
-            </tr>
-          )}
-        </tfoot>
-      </table>
-
-      {invoice.paymentTerms && (
-        <div className="inv-payment-terms">
-          <div className="inv-section-label">PAYMENT TERMS</div>
-          <div className="inv-payment-text">{invoice.paymentTerms}</div>
-        </div>
-      )}
-      {invoice.notes && (
-        <div className="inv-notes">
-          <div className="inv-section-label">NOTES</div>
-          <div className="inv-notes-text">{invoice.notes}</div>
-        </div>
-      )}
-      <div className="inv-footer"><div className="inv-footer-text">Thank you for your business!</div></div>
-    </div>
-  );
-}
 
 export default function InvoiceDetailPage() {
   const [, params] = useRoute("/invoices/:id");
@@ -170,10 +48,7 @@ export default function InvoiceDetailPage() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const createPayment = useCreatePayment();
 
-  const lineItems: LineItem[] = (() => {
-    if (!invoice?.lineItemsJson) return [];
-    try { return JSON.parse(invoice.lineItemsJson) as LineItem[]; } catch { return []; }
-  })();
+  const { items: lineItems, style: styleOverrides } = parseLineItems(invoice?.lineItemsJson);
 
   const template: Template = (invoice?.template as Template) ?? "clean";
   const statusInfo = STATUS_MAP[invoice?.status ?? "draft"] ?? STATUS_MAP.draft;
@@ -312,7 +187,27 @@ export default function InvoiceDetailPage() {
 
         <main className="flex-1 overflow-y-auto bg-muted/40 p-6 print-invoice-main">
           <div className="max-w-3xl mx-auto">
-            <InvoiceDocView template={template} invoice={invoice} company={company} lineItems={lineItems} />
+            <InvoiceDocument
+              template={template}
+              invoiceNumber={invoice.invoiceNumber || `INV-${invoice.id}`}
+              invoiceDate={invoice.invoiceDate ?? ""}
+              dueDate={invoice.dueDate ?? ""}
+              companyName={company?.name ?? ""}
+              companyAddress={company?.address ?? ""}
+              companyPhone={company?.phone ?? ""}
+              companyEmail={company?.email ?? ""}
+              logoUrl={company?.logoUrl}
+              clientName={invoice.clientName ?? ""}
+              clientAddress={invoice.clientAddress}
+              jobTitle={invoice.jobTitle ?? ""}
+              lineItems={lineItems}
+              servicesDescription={invoice.servicesDescription ?? ""}
+              paymentTerms={invoice.paymentTerms ?? ""}
+              notes={invoice.notes ?? ""}
+              taxRate={(invoice.taxRate ?? 0) > 0 ? invoice.taxRate ?? undefined : undefined}
+              taxAmount={(invoice.taxRate ?? 0) > 0 ? invoice.taxAmount ?? undefined : undefined}
+              style={styleOverrides}
+            />
           </div>
         </main>
       </div>

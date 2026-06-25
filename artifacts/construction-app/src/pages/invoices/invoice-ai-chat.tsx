@@ -19,7 +19,7 @@ const SUGGESTIONS = [
 ];
 
 const WELCOME =
-  "Hi! I'm your invoice design assistant. Tell me how you'd like this invoice to look — try \"make it blue\", \"center the logo\", \"add a thank-you note\", or \"hide payment terms\".";
+  "Your invoice is ready. Tell me what you'd like to change — try \"make it blue\", \"center the logo\", \"add a thank-you note\", or \"hide payment terms\".";
 
 export function InvoiceAIChat({
   current,
