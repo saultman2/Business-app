@@ -1174,6 +1174,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiRenderPhotoResult"
 
+  /ai/material-price:
+    post:
+      operationId: aiMaterialPrice
+      tags: [ai]
+      summary: Look up historical and AI-estimated retail prices for a material item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiMaterialPriceInput"
+      responses:
+        "200":
+          description: Historical company pricing plus approximate retail estimates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiMaterialPriceResult"
+
   # ──────────────────────────────────────
   # STORAGE
   # ──────────────────────────────────────
@@ -2714,3 +2733,56 @@ components:
           $ref: "#/components/schemas/JobPhoto"
         after:
           $ref: "#/components/schemas/JobPhoto"
+
+    AiMaterialPriceInput:
+      type: object
+      required: [itemName]
+      properties:
+        itemName:
+          type: string
+          description: The material item name to price (e.g. "2x4 lumber").
+        unit:
+          type: [string, "null"]
+          description: The unit of measure (e.g. ea, ft, sheet).
+
+    AiMaterialPriceHistorical:
+      type: object
+      required: [count]
+      properties:
+        avg:
+          type: [number, "null"]
+          description: Average unit price this company has paid, or null when no records.
+        latest:
+          type: [number, "null"]
+          description: Most-recent unit price this company has paid, or null when no records.
+        count:
+          type: integer
+          description: Number of historical price records found for this company.
+
+    AiMaterialPriceRetailEstimate:
+      type: object
+      required: [store, confidence]
+      properties:
+        store:
+          type: string
+          description: Retailer name (e.g. Home Depot, Lowe's).
+        price:
+          type: [number, "null"]
+          description: Approximate current retail unit price, or null when unknown.
+        confidence:
+          type: string
+          enum: [high, estimate, approximate]
+          description: How reliable this figure is.
+
+    AiMaterialPriceResult:
+      type: object
+      required: [historical, retailEstimates]
+      properties:
+        historical:
+          $ref: "#/components/schemas/AiMaterialPriceHistorical"
+        retailEstimates:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiMaterialPriceRetailEstimate"
+        disclaimer:
+          type: [string, "null"]

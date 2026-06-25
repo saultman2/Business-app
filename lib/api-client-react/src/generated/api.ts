@@ -24,6 +24,8 @@ import type {
   AiInvoiceDescriptionResult,
   AiInvoiceDesignInput,
   AiInvoiceDesignResult,
+  AiMaterialPriceInput,
+  AiMaterialPriceResult,
   AiQuoteEstimateInput,
   AiQuoteEstimateResult,
   AiRenderPhotoInput,
@@ -4303,6 +4305,77 @@ export const useAiRenderPhoto = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAiRenderPhotoMutationOptions(options));
+    }
+
+export const getAiMaterialPriceUrl = () => {
+
+
+
+
+  return `/api/ai/material-price`
+}
+
+/**
+ * @summary Look up historical and AI-estimated retail prices for a material item
+ */
+export const aiMaterialPrice = async (aiMaterialPriceInput: AiMaterialPriceInput, options?: RequestInit): Promise<AiMaterialPriceResult> => {
+
+  return customFetch<AiMaterialPriceResult>(getAiMaterialPriceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiMaterialPriceInput,)
+  }
+);}
+
+
+
+
+export const getAiMaterialPriceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiMaterialPrice>>, TError,{data: BodyType<AiMaterialPriceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiMaterialPrice>>, TError,{data: BodyType<AiMaterialPriceInput>}, TContext> => {
+
+const mutationKey = ['aiMaterialPrice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiMaterialPrice>>, {data: BodyType<AiMaterialPriceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiMaterialPrice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiMaterialPriceMutationResult = NonNullable<Awaited<ReturnType<typeof aiMaterialPrice>>>
+    export type AiMaterialPriceMutationBody = BodyType<AiMaterialPriceInput>
+    export type AiMaterialPriceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Look up historical and AI-estimated retail prices for a material item
+ */
+export const useAiMaterialPrice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiMaterialPrice>>, TError,{data: BodyType<AiMaterialPriceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiMaterialPrice>>,
+        TError,
+        {data: BodyType<AiMaterialPriceInput>},
+        TContext
+      > => {
+      return useMutation(getAiMaterialPriceMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

@@ -1054,6 +1054,62 @@ export interface AiRenderPhotoResult {
   after: JobPhoto;
 }
 
+export interface AiMaterialPriceInput {
+  /** The material item name to price (e.g. "2x4 lumber"). */
+  itemName: string;
+  /**
+     * The unit of measure (e.g. ea, ft, sheet).
+     * @nullable
+     */
+  unit?: string | null;
+}
+
+export interface AiMaterialPriceHistorical {
+  /**
+     * Average unit price this company has paid, or null when no records.
+     * @nullable
+     */
+  avg?: number | null;
+  /**
+     * Most-recent unit price this company has paid, or null when no records.
+     * @nullable
+     */
+  latest?: number | null;
+  /** Number of historical price records found for this company. */
+  count: number;
+}
+
+/**
+ * How reliable this figure is.
+ */
+export type AiMaterialPriceRetailEstimateConfidence = typeof AiMaterialPriceRetailEstimateConfidence[keyof typeof AiMaterialPriceRetailEstimateConfidence];
+
+
+export const AiMaterialPriceRetailEstimateConfidence = {
+  high: 'high',
+  estimate: 'estimate',
+  approximate: 'approximate',
+} as const;
+
+export interface AiMaterialPriceRetailEstimate {
+  /** Retailer name (e.g. Home Depot, Lowe's). */
+  store: string;
+  /**
+     * Approximate current retail unit price, or null when unknown.
+     * @nullable
+     */
+  price?: number | null;
+  /** How reliable this figure is. */
+  confidence: AiMaterialPriceRetailEstimateConfidence;
+}
+
+export interface AiMaterialPriceResult {
+  historical: AiMaterialPriceHistorical;
+  retailEstimates: AiMaterialPriceRetailEstimate[];
+  /** @nullable */
+  disclaimer?: string | null;
+}
+
 export type ListClientsParams = {
 search?: string;
 };

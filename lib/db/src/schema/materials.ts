@@ -6,6 +6,7 @@ import {
   integer,
   numeric,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -38,6 +39,20 @@ export const materialItemsTable = pgTable("material_items", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+export const materialPriceHistoryTable = pgTable(
+  "material_price_history",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    itemName: text("item_name").notNull(),
+    unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+    unit: text("unit"),
+    sourceJobId: integer("source_job_id"),
+    recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+  },
+  (t) => [index("mph_company_item_idx").on(t.companyId, t.itemName)],
+);
+
 export const insertMaterialListSchema = createInsertSchema(materialListsTable).omit({
   id: true,
   companyId: true,
@@ -55,3 +70,4 @@ export type InsertMaterialList = z.infer<typeof insertMaterialListSchema>;
 export type InsertMaterialItem = z.infer<typeof insertMaterialItemSchema>;
 export type MaterialList = typeof materialListsTable.$inferSelect;
 export type MaterialItem = typeof materialItemsTable.$inferSelect;
+export type MaterialPriceHistory = typeof materialPriceHistoryTable.$inferSelect;

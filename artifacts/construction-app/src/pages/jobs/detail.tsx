@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, Fragment } from "react";
 import { useRoute, Link } from "wouter";
 import { 
   useGetJob, 
@@ -43,7 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@workspace/object-storage-web";
-import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Pencil, Download, Calendar as CalendarIcon, Send, Copy, MessageSquare, Mail, Phone } from "lucide-react";
+import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Pencil, Download, Calendar as CalendarIcon, Send, Copy, MessageSquare, Mail, Phone, Tag } from "lucide-react";
 
 interface AiMaterialSuggestion {
   name: string;
@@ -60,6 +60,12 @@ interface NewItemRow {
   unit: string;
   unitPrice: string;
   category: string;
+}
+
+interface PriceHintData {
+  historical: { avg: number | null; latest: number | null; count: number };
+  retailEstimates: { store: string; price: number | null; confidence: string }[];
+  disclaimer?: string | null;
 }
 
 const EMPTY_NEW_ITEM: NewItemRow = { name: "", quantity: "1", unit: "ea", unitPrice: "", category: "" };
@@ -233,6 +239,40 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
     });
   };
 
+  const [priceHint, setPriceHint] = useState<{
+    rowKey: "new" | number;
+    loading: boolean;
+    data: PriceHintData | null;
+  } | null>(null);
+
+  const handleCheckPrice = async (rowKey: "new" | number, name: string, unit: string) => {
+    if (!name.trim()) {
+      toast({ title: "Enter an item name first", variant: "destructive" });
+      return;
+    }
+    setPriceHint({ rowKey, loading: true, data: null });
+    try {
+      const res = await fetch("/api/ai/material-price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemName: name.trim(), unit: unit || null }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data: PriceHintData = await res.json();
+      setPriceHint({ rowKey, loading: false, data });
+    } catch {
+      setPriceHint(null);
+      toast({ title: "Price check failed", description: "Could not fetch price hints. Try again.", variant: "destructive" });
+    }
+  };
+
+  const applyPrice = (rowKey: "new" | number, price: number) => {
+    const v = String(price);
+    if (rowKey === "new") setNewRow(r => ({ ...r, unitPrice: v }));
+    else setEditRow(r => ({ ...r, unitPrice: v }));
+    setPriceHint(null);
+  };
+
   const handleAiSuggest = async () => {
     setIsSuggestingAi(true);
     setAiSuggestions([]);
@@ -318,6 +358,65 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
   const total = matList?.subtotal ?? 0;
   const canImport = !!approvedEstimateId;
 
+  const renderHintRow = (rowKey: "new" | number) => {
+    if (!priceHint || priceHint.rowKey !== rowKey) return null;
+    const d = priceHint.data;
+    return (
+      <tr key={`hint-${rowKey}`}>
+        <td colSpan={6} className="px-4 py-0">
+          <div className="my-2 rounded-md border bg-muted/30 p-3">
+            {priceHint.loading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Checking prices…
+              </div>
+            ) : d ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Tag className="w-4 h-4 text-emerald-600" /> Price hints
+                  </div>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPriceHint(null)}><X className="w-3.5 h-3.5" /></Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {d.historical.count > 0 ? (
+                    <>
+                      {d.historical.latest != null && (
+                        <button type="button" onClick={() => applyPrice(rowKey, d.historical.latest!)} className="flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30">
+                          <Badge variant="secondary" className="bg-emerald-600 text-white">From your records</Badge>
+                          <span className="font-medium">{formatCurrency(d.historical.latest)}</span>
+                          <span className="text-muted-foreground">latest</span>
+                          <span className="text-emerald-700 dark:text-emerald-400">· Use</span>
+                        </button>
+                      )}
+                      {d.historical.avg != null && (
+                        <button type="button" onClick={() => applyPrice(rowKey, Math.round(d.historical.avg! * 100) / 100)} className="flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30">
+                          <span className="font-medium">{formatCurrency(Math.round(d.historical.avg * 100) / 100)}</span>
+                          <span className="text-muted-foreground">avg of {d.historical.count}</span>
+                          <span className="text-emerald-700 dark:text-emerald-400">· Use</span>
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No prior records for this item.</span>
+                  )}
+                  {d.retailEstimates.filter(e => e.price != null).map((e, i) => (
+                    <button key={i} type="button" onClick={() => applyPrice(rowKey, e.price!)} className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-muted">
+                      <Badge variant="outline">AI estimate</Badge>
+                      <span className="font-medium">{formatCurrency(e.price!)}</span>
+                      <span className="text-muted-foreground">{e.store} (approx.)</span>
+                      <span className="text-primary">· Use</span>
+                    </button>
+                  ))}
+                </div>
+                {d.disclaimer && <p className="text-[11px] text-muted-foreground">{d.disclaimer}</p>}
+              </div>
+            ) : null}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   if (isLoading) return <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>;
 
   return (
@@ -373,7 +472,8 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                 <tbody className="divide-y">
                   {items.map((item) =>
                     editingId === item.id ? (
-                      <tr key={item.id} className="bg-muted/30">
+                      <Fragment key={item.id}>
+                      <tr className="bg-muted/30">
                         <td className="px-2 py-1"><Input value={editRow.name} onChange={e => setEditRow(r => ({ ...r, name: e.target.value }))} className="h-7 text-sm" /></td>
                         <td className="px-2 py-1"><Input value={editRow.quantity} onChange={e => setEditRow(r => ({ ...r, quantity: e.target.value }))} className="h-7 text-sm text-right w-16" /></td>
                         <td className="px-2 py-1"><Input value={editRow.unit} onChange={e => setEditRow(r => ({ ...r, unit: e.target.value }))} className="h-7 text-sm w-16" /></td>
@@ -381,11 +481,14 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                         <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(editRow.quantity) || 0) * (parseFloat(editRow.unitPrice) || 0))}</td>
                         <td className="px-2 py-1">
                           <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" title="Check price" onClick={() => handleCheckPrice(item.id, editRow.name, editRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSaveEdit(item.id)}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="w-3.5 h-3.5" /></Button>
                           </div>
                         </td>
                       </tr>
+                      {renderHintRow(item.id)}
+                      </Fragment>
                     ) : (
                       <tr key={item.id} className="hover:bg-muted/20 cursor-pointer group" onClick={() => { setEditingId(item.id); setEditRow({ name: item.name, quantity: String(item.quantity ?? 1), unit: item.unit ?? "ea", unitPrice: String(item.unitPrice ?? 0), category: item.category ?? "" }); }}>
                         <td className="px-4 py-2.5">
@@ -405,6 +508,7 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                     )
                   )}
                   {addingRow && (
+                    <Fragment>
                     <tr className="bg-blue-50/50 dark:bg-blue-950/20">
                       <td className="px-2 py-1"><Input autoFocus placeholder="Item name" value={newRow.name} onChange={e => setNewRow(r => ({ ...r, name: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") handleAddItem(); if (e.key === "Escape") setAddingRow(false); }} className="h-7 text-sm" /></td>
                       <td className="px-2 py-1"><Input value={newRow.quantity} onChange={e => setNewRow(r => ({ ...r, quantity: e.target.value }))} className="h-7 text-sm text-right w-16" /></td>
@@ -413,11 +517,14 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                       <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(newRow.quantity) || 0) * (parseFloat(newRow.unitPrice) || 0))}</td>
                       <td className="px-2 py-1">
                         <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Check price" onClick={() => handleCheckPrice("new", newRow.name, newRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleAddItem} disabled={!newRow.name.trim()}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingRow(false); setNewRow(EMPTY_NEW_ITEM); }}><X className="w-3.5 h-3.5" /></Button>
                         </div>
                       </td>
                     </tr>
+                    {renderHintRow("new")}
+                    </Fragment>
                   )}
                 </tbody>
                 {(items.length > 0 || addingRow) && (

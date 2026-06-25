@@ -5,8 +5,14 @@ import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
-import { db, companiesTable, jobsTable, jobPhotosTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import {
+  db,
+  companiesTable,
+  jobsTable,
+  jobPhotosTable,
+  materialPriceHistoryTable,
+} from "@workspace/db";
+import { eq, and, desc, avg, count } from "drizzle-orm";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { objectReferencedByOtherCompany } from "../lib/ownership";
 import { serializeJobPhoto } from "../lib/serialize";
@@ -539,6 +545,112 @@ router.post("/ai/render-photo", async (req, res): Promise<void> => {
       }
     }
   }
+});
+
+const MaterialPriceBody = z.object({
+  itemName: z.string().min(1),
+  unit: z.string().nullish(),
+});
+
+router.post("/ai/material-price", async (req, res): Promise<void> => {
+  const parsed = MaterialPriceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const companyId = req.companyId!;
+  const itemName = parsed.data.itemName.trim();
+  const unit = parsed.data.unit ?? null;
+  const normalized = itemName.toLowerCase();
+
+  // (a) Company's own historical prices.
+  const [stats] = await db
+    .select({
+      avg: avg(materialPriceHistoryTable.unitPrice),
+      count: count(),
+    })
+    .from(materialPriceHistoryTable)
+    .where(
+      and(
+        eq(materialPriceHistoryTable.companyId, companyId),
+        eq(materialPriceHistoryTable.itemName, normalized),
+      ),
+    );
+  const [latestRow] = await db
+    .select({ unitPrice: materialPriceHistoryTable.unitPrice })
+    .from(materialPriceHistoryTable)
+    .where(
+      and(
+        eq(materialPriceHistoryTable.companyId, companyId),
+        eq(materialPriceHistoryTable.itemName, normalized),
+      ),
+    )
+    .orderBy(desc(materialPriceHistoryTable.recordedAt))
+    .limit(1);
+
+  const historyCount = Number(stats?.count ?? 0);
+  const historical = {
+    avg: stats?.avg != null ? Number(stats.avg) : null,
+    latest: latestRow?.unitPrice != null ? Number(latestRow.unitPrice) : null,
+    count: historyCount,
+  };
+
+  // (b) AI-inferred approximate retail prices.
+  let retailEstimates: {
+    store: string;
+    price: number | null;
+    confidence: "high" | "estimate" | "approximate";
+  }[] = [];
+  let disclaimer: string | null =
+    "Retail estimates are approximate and may not reflect current in-store pricing — verify before ordering.";
+
+  const openai = getOpenai();
+  if (openai) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5.4",
+        max_completion_tokens: 512,
+        messages: [
+          {
+            role: "system",
+            content: `You are a construction materials pricing assistant. Estimate the current approximate US retail unit price for a material item at Home Depot and Lowe's.
+Respond ONLY with valid JSON: { "estimates": [ { "store": "Home Depot", "price": number|null, "confidence": "estimate"|"approximate" } ] }
+Use your best knowledge of typical retail pricing. Prices are approximate. If you cannot reasonably estimate, use null for price. Always include both Home Depot and Lowe's.`,
+          },
+          {
+            role: "user",
+            content: `Item: "${itemName}"${unit ? ` (unit: ${unit})` : ""}. Give the approximate retail unit price at Home Depot and Lowe's.`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      });
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const aiSchema = z.object({
+        estimates: z.array(
+          z.object({
+            store: z.string(),
+            price: z.number().nullish(),
+            confidence: z.enum(["high", "estimate", "approximate"]).nullish(),
+          }),
+        ),
+      });
+      const result = aiSchema.parse(JSON.parse(raw));
+      retailEstimates = result.estimates.map((e) => ({
+        store: e.store,
+        price: e.price ?? null,
+        confidence: e.confidence ?? "approximate",
+      }));
+    } catch (err) {
+      req.log.error({ err }, "AI material price lookup failed");
+      disclaimer =
+        "Retail price estimates are unavailable right now — showing your historical pricing only.";
+    }
+  } else {
+    disclaimer =
+      "AI retail estimates are not configured — showing your historical pricing only.";
+  }
+
+  res.json({ historical, retailEstimates, disclaimer });
 });
 
 export default router;

@@ -5,6 +5,7 @@ import {
   jobsTable,
   materialListsTable,
   materialItemsTable,
+  materialPriceHistoryTable,
 } from "@workspace/db";
 import {
   GetJobMaterialListParams,
@@ -67,6 +68,23 @@ async function listDetail(companyId: number, jobId: number) {
     taxableSubtotal,
     markupSubtotal,
   };
+}
+
+async function indexPriceHistory(
+  companyId: number,
+  name: string,
+  unitPrice: number,
+  unit: string | null | undefined,
+  jobId: number | null,
+) {
+  if (!name.trim() || !Number.isFinite(unitPrice) || unitPrice <= 0) return;
+  await db.insert(materialPriceHistoryTable).values({
+    companyId,
+    itemName: name.trim().toLowerCase(),
+    unitPrice: String(unitPrice),
+    unit: unit ?? null,
+    sourceJobId: jobId,
+  });
 }
 
 async function ensureJob(companyId: number, jobId: number) {
@@ -160,6 +178,13 @@ router.post(
         sortOrder: d.sortOrder,
       })
       .returning();
+    await indexPriceHistory(
+      req.companyId!,
+      item.name,
+      price,
+      item.unit,
+      params.data.jobId,
+    );
     res.status(201).json(serializeMaterialItem(item));
   },
 );
@@ -190,6 +215,7 @@ router.patch("/material-items/:id", async (req, res): Promise<void> => {
   }
   const d = parsed.data;
   const qty = d.quantity !== undefined ? n(d.quantity) : n(existing.quantity);
+  const oldPrice = n(existing.unitPrice);
   const price =
     d.unitPrice !== undefined ? n(d.unitPrice) : n(existing.unitPrice);
   const [item] = await db
@@ -211,6 +237,19 @@ router.patch("/material-items/:id", async (req, res): Promise<void> => {
     })
     .where(eq(materialItemsTable.id, params.data.id))
     .returning();
+  if (price > 0 && price !== oldPrice) {
+    const [list] = await db
+      .select({ jobId: materialListsTable.jobId })
+      .from(materialListsTable)
+      .where(eq(materialListsTable.id, item.materialListId));
+    await indexPriceHistory(
+      req.companyId!,
+      item.name,
+      price,
+      item.unit,
+      list?.jobId ?? null,
+    );
+  }
   res.json(serializeMaterialItem(item));
 });
 

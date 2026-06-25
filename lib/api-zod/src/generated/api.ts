@@ -1574,6 +1574,29 @@ export const AiRenderPhotoResponse = zod.object({
 
 
 /**
+ * @summary Look up historical and AI-estimated retail prices for a material item
+ */
+export const AiMaterialPriceBody = zod.object({
+  "itemName": zod.string().describe('The material item name to price (e.g. \"2x4 lumber\").'),
+  "unit": zod.string().nullish().describe('The unit of measure (e.g. ea, ft, sheet).')
+})
+
+export const AiMaterialPriceResponse = zod.object({
+  "historical": zod.object({
+  "avg": zod.number().nullish().describe('Average unit price this company has paid, or null when no records.'),
+  "latest": zod.number().nullish().describe('Most-recent unit price this company has paid, or null when no records.'),
+  "count": zod.number().describe('Number of historical price records found for this company.')
+}),
+  "retailEstimates": zod.array(zod.object({
+  "store": zod.string().describe('Retailer name (e.g. Home Depot, Lowe\'s).'),
+  "price": zod.number().nullish().describe('Approximate current retail unit price, or null when unknown.'),
+  "confidence": zod.enum(['high', 'estimate', 'approximate']).describe('How reliable this figure is.')
+})),
+  "disclaimer": zod.string().nullish()
+})
+
+
+/**
  * @summary Request a presigned URL for file upload
  */
 export const RequestUploadUrlBody = zod.object({
