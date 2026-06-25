@@ -471,7 +471,12 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <div>
             <CardTitle>Material List</CardTitle>
-            <CardDescription>Track materials needed for this job</CardDescription>
+            <CardDescription>
+              Add every material needed for this job.
+              <span className="block text-xs mt-1 text-amber-600 dark:text-amber-400">
+                💡 The more items you list here, the more accurate the AI auto-quote will be.
+              </span>
+            </CardDescription>
           </div>
           <div className="flex gap-2">
             {canImport && (

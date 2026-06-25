@@ -564,14 +564,15 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
       </div>
 
       <div className="space-y-1.5">
-        <Label>Job Description</Label>
+        <Label>Job Description <span className="text-muted-foreground font-normal text-xs">— more detail = more accurate quote</span></Label>
         <Textarea
-          placeholder="e.g. Replace electrical panel in a 3-bedroom house, upgrade from 100A to 200A service..."
+          placeholder={"Describe the job in detail: scope of work, room sizes, materials preference, any special conditions, access issues, etc. The more you include, the more accurate the AI estimate will be.\n\nExample: Replace 200 sq ft of tile in master bathroom. Remove existing tile and adhesive, install cement board, 12×24 porcelain tile with 1/8\" grout lines. Include new schluter strip at doorway."}
           value={description}
           onChange={e => setDescription(e.target.value)}
-          rows={4}
-          className="resize-none"
+          rows={6}
+          className="resize-y"
         />
+        <p className="text-xs text-muted-foreground">Tip: Include measurements, material brands, access constraints, and anything else the estimator would need to know on-site.</p>
       </div>
 
       <div className="space-y-1.5">
