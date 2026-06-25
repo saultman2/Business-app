@@ -2,3 +2,4 @@
 - [OpenAI types in routes](openai-types-routes.md) — use inline types instead of OpenAI namespace (e.g. OpenAI.ChatCompletionContentPart) to avoid needing openai as a direct dep
 - [Multitenancy](multitenancy.md) — companyId always from req.companyId, never request body; all queries scoped by companyId
 - [Upload objectPath](upload-objectpath.md) — objectPath must come from POST /api/storage/uploads/request-url, not GCS PUT response
+- [recharts HMR quirk](recharts-hmr-quirk.md) — transient "Invalid hook call / useRef null" from recharts on Vite HMR is not a real React-dup bug; reload

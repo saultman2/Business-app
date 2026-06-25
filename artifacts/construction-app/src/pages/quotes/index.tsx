@@ -325,13 +325,13 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
               <span className="text-sm text-muted-foreground self-center mr-1">Showing:</span>
               <button
                 onClick={() => setMode("labor_and_materials")}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${mode === "labor_and_materials" ? "bg-[#2563eb] text-white border-[#2563eb]" : "border-border text-muted-foreground hover:border-foreground/30"}`}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${mode === "labor_and_materials" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground/30"}`}
               >
                 Labor + Materials
               </button>
               <button
                 onClick={() => setMode("labor_only")}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${mode === "labor_only" ? "bg-[#2563eb] text-white border-[#2563eb]" : "border-border text-muted-foreground hover:border-foreground/30"}`}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${mode === "labor_only" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground/30"}`}
               >
                 Labor Only
               </button>
@@ -518,13 +518,13 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
         <div className="flex gap-2">
           <button
             onClick={() => setMode("labor_only")}
-            className={`flex-1 py-2 px-3 rounded-md border text-sm font-medium transition-all ${mode === "labor_only" ? "border-[#2563eb] bg-[#2563eb]/10 text-[#2563eb]" : "border-border text-muted-foreground hover:border-foreground/30"}`}
+            className={`flex-1 py-2 px-3 rounded-md border text-sm font-medium transition-all ${mode === "labor_only" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-foreground/30"}`}
           >
             Labor Only
           </button>
           <button
             onClick={() => setMode("labor_and_materials")}
-            className={`flex-1 py-2 px-3 rounded-md border text-sm font-medium transition-all ${mode === "labor_and_materials" ? "border-[#2563eb] bg-[#2563eb]/10 text-[#2563eb]" : "border-border text-muted-foreground hover:border-foreground/30"}`}
+            className={`flex-1 py-2 px-3 rounded-md border text-sm font-medium transition-all ${mode === "labor_and_materials" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-foreground/30"}`}
           >
             Labor + Materials
           </button>
@@ -569,7 +569,7 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
         </div>
       </div>
 
-      <Button onClick={handleGenerate} disabled={isGenerating || !description.trim()} className="w-full bg-[#2563eb] hover:bg-[#1d4ed8]">
+      <Button onClick={handleGenerate} disabled={isGenerating || !description.trim()} className="w-full">
         {isGenerating ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating estimate...</>
         ) : (
@@ -605,7 +605,7 @@ export default function QuotesPage() {
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-foreground font-medium">Estimates Overview</span>
         </div>
-        <Button onClick={() => setShowNew(true)} className="bg-[#2563eb] hover:bg-[#1d4ed8]">
+        <Button onClick={() => setShowNew(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> New Estimate
         </Button>
       </div>
@@ -617,7 +617,7 @@ export default function QuotesPage() {
               <ArrowLeft className="w-4 h-4" /> Back to estimates
             </button>
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#2563eb]" /> AI Estimate Generator
+              <Sparkles className="w-5 h-5 text-primary" /> AI Estimate Generator
             </h2>
           </div>
           <NewQuotePanel onClose={() => setShowNew(false)} onSaved={handleSaved} initialJobId={preselectedJobId ? parseInt(preselectedJobId) : null} />

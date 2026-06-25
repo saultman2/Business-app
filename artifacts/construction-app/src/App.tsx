@@ -22,6 +22,8 @@ import InvoiceDetail from "@/pages/invoices/detail";
 import NewInvoicePage from "@/pages/invoices/new";
 import EditInvoicePage from "@/pages/invoices/edit";
 import QuotesPage from "@/pages/quotes/index";
+import FinancesPage from "@/pages/finances";
+import AiToolsPage from "@/pages/ai-tools";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -54,19 +56,19 @@ const clerkAppearance = {
   },
   variables: {
     colorPrimary: "hsl(38 92% 50%)",
-    colorForeground: "hsl(222.2 47.4% 11.2%)",
-    colorMutedForeground: "hsl(215.4 16.3% 46.9%)",
+    colorForeground: "hsl(218 35% 14%)",
+    colorMutedForeground: "hsl(215 18% 47%)",
     colorDanger: "hsl(0 84.2% 60.2%)",
     colorBackground: "hsl(0 0% 100%)",
-    colorInput: "hsl(214.3 31.8% 91.4%)",
-    colorInputForeground: "hsl(222.2 47.4% 11.2%)",
-    colorNeutral: "hsl(214.3 31.8% 91.4%)",
+    colorInput: "hsl(214 32% 89%)",
+    colorInputForeground: "hsl(218 35% 14%)",
+    colorNeutral: "hsl(214 32% 91%)",
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    borderRadius: "0.5rem",
+    borderRadius: "0.625rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-white dark:bg-[#0c0c0c] rounded-2xl w-[440px] max-w-full overflow-hidden border border-border shadow-sm",
+    cardBox: "bg-card rounded-2xl w-[440px] max-w-full overflow-hidden border border-border shadow-sm",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle: "text-2xl font-bold text-foreground",
@@ -146,6 +148,8 @@ function ProtectedRoutes() {
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/quotes" component={QuotesPage} />
+        <Route path="/finances" component={FinancesPage} />
+        <Route path="/ai-tools" component={AiToolsPage} />
         <Route path="/invoices" component={InvoicesPage} />
         <Route path="/invoices/new" component={NewInvoicePage} />
         <Route path="/invoices/:id/edit" component={EditInvoicePage} />
