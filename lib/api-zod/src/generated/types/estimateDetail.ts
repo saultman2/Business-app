@@ -17,6 +17,11 @@ export interface EstimateDetail {
   clientName?: string | null;
   /** @nullable */
   jobTitle?: string | null;
+  /**
+     * Current stage of the linked job (advances to "approved" when the estimate is approved).
+     * @nullable
+     */
+  jobStatus?: string | null;
   /** @nullable */
   estimateNumber?: string | null;
   title: string;

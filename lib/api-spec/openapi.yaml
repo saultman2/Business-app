@@ -1695,6 +1695,9 @@ components:
           type: [string, "null"]
         jobTitle:
           type: [string, "null"]
+        jobStatus:
+          type: [string, "null"]
+          description: Current stage of the linked job (advances to "approved" when the estimate is approved).
         estimateNumber:
           type: [string, "null"]
         title:

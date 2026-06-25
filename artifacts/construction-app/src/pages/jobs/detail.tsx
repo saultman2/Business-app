@@ -5,9 +5,12 @@ import {
   useUpdateJob, 
   useGetJobSummary, 
   useGetJobMaterialList, 
-  useListJobPhotos,
   useListEstimates,
-  useListInvoices,
+  useUpdateEstimate,
+  useGetEstimate,
+  useListReceipts,
+  useCreateReceipt,
+  useListClients,
   useCreateJobPhoto,
   useCreateMaterialItem,
   useUpdateMaterialItem,
@@ -16,6 +19,8 @@ import {
   getGetJobSummaryQueryKey,
   getListJobPhotosQueryKey,
   getGetJobMaterialListQueryKey,
+  getListEstimatesQueryKey,
+  getListReceiptsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,12 +28,13 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@workspace/object-storage-web";
-import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Calendar as CalendarIcon } from "lucide-react";
+import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Pencil, Download, Calendar as CalendarIcon } from "lucide-react";
 
 interface AiMaterialSuggestion {
   name: string;
@@ -51,6 +57,29 @@ const EMPTY_NEW_ITEM: NewItemRow = { name: "", quantity: "1", unit: "ea", unitPr
 
 function JobEstimatesCard({ jobId }: { jobId: number }) {
   const { data: estimates } = useListEstimates({ jobId });
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateEstimate = useUpdateEstimate();
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+
+  const handleApprove = (estimateId: number) => {
+    setApprovingId(estimateId);
+    updateEstimate.mutate(
+      { id: estimateId, data: { status: "approved" } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(jobId) });
+          queryClient.invalidateQueries({ queryKey: getGetJobSummaryQueryKey(jobId) });
+          queryClient.invalidateQueries({ queryKey: getListEstimatesQueryKey({ jobId }) });
+          queryClient.invalidateQueries({ queryKey: getGetJobMaterialListQueryKey(jobId) });
+          toast({ title: "Estimate approved", description: "Job moved to Approved stage." });
+        },
+        onError: () => toast({ title: "Failed to approve estimate", variant: "destructive" }),
+        onSettled: () => setApprovingId(null),
+      }
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -79,6 +108,7 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
                 <th className="px-3 py-2 text-right">Total</th>
                 <th className="px-3 py-2 text-left">Status</th>
                 <th className="px-3 py-2 text-left">Date</th>
+                <th className="px-3 py-2 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -92,6 +122,23 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
                     </Badge>
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{formatDate(est.createdAt)}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    {est.status !== "approved" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleApprove(est.id)}
+                        disabled={approvingId === est.id}
+                      >
+                        {approvingId === est.id ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 mr-1.5 text-green-600" />
+                        )}
+                        Approve
+                      </Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -102,7 +149,7 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
   );
 }
 
-function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobTitle: string; jobDescription?: string | null }) {
+function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: { jobId: number; jobTitle: string; jobDescription?: string | null; approvedEstimateId?: number | null }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -110,6 +157,11 @@ function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobT
   const createItem = useCreateMaterialItem();
   const updateItem = useUpdateMaterialItem();
   const deleteItem = useDeleteMaterialItem();
+  const [isImporting, setIsImporting] = useState(false);
+
+  const { data: approvedEstimate } = useGetEstimate(approvedEstimateId ?? 0, {
+    query: { enabled: !!approvedEstimateId },
+  });
 
   const [newRow, setNewRow] = useState<NewItemRow>(EMPTY_NEW_ITEM);
   const [addingRow, setAddingRow] = useState(false);
@@ -214,8 +266,45 @@ function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobT
     }
   };
 
+  const handleImportFromEstimate = async () => {
+    const estimateItems = (approvedEstimate?.items ?? []).filter(
+      (it) => it.section === "material",
+    );
+    if (estimateItems.length === 0) {
+      toast({ title: "No material items on the approved estimate", variant: "destructive" });
+      return;
+    }
+    setIsImporting(true);
+    try {
+      for (const it of estimateItems) {
+        await new Promise<void>((resolve, reject) => {
+          createItem.mutate(
+            {
+              jobId,
+              data: {
+                name: it.description,
+                quantity: Number(it.quantity) || 1,
+                unit: it.unit || "ea",
+                unitPrice: Number(it.unitPrice) || 0,
+                category: null,
+              },
+            },
+            { onSuccess: () => resolve(), onError: () => reject() }
+          );
+        });
+      }
+      invalidate();
+      toast({ title: `Imported ${estimateItems.length} items from estimate` });
+    } catch {
+      toast({ title: "Some items failed to import", variant: "destructive" });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const items = matList?.items ?? [];
   const total = matList?.subtotal ?? 0;
+  const canImport = !!approvedEstimateId;
 
   if (isLoading) return <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>;
 
@@ -228,6 +317,12 @@ function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobT
             <CardDescription>Track materials needed for this job</CardDescription>
           </div>
           <div className="flex gap-2">
+            {canImport && (
+              <Button size="sm" variant="outline" onClick={handleImportFromEstimate} disabled={isImporting}>
+                {isImporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Import from Estimate
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={handleAiSuggest} disabled={isSuggestingAi}>
               {isSuggestingAi ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-purple-500" />}
               AI Suggest
@@ -393,18 +488,503 @@ function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobT
   );
 }
 
+const JOB_STAGES = [
+  { value: "new", label: "New" },
+  { value: "estimate", label: "Estimate" },
+  { value: "approved", label: "Approved" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "finished", label: "Finished" },
+  { value: "invoiced", label: "Invoiced" },
+  { value: "paid", label: "Paid" },
+];
+
+const JOB_PRIORITIES = [
+  { value: "low", label: "Low" },
+  { value: "normal", label: "Normal" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
+
+type JobLike = NonNullable<ReturnType<typeof useGetJob>["data"]>;
+type SummaryLike = ReturnType<typeof useGetJobSummary>["data"];
+
+interface OverviewForm {
+  title: string;
+  status: string;
+  jobType: string;
+  priority: string;
+  estimatedValue: string;
+  description: string;
+  startDate: string;
+  clientId: string;
+}
+
+function priorityVariant(priority?: string | null) {
+  if (priority === "urgent" || priority === "high") return "destructive" as const;
+  if (priority === "normal") return "default" as const;
+  return "secondary" as const;
+}
+
+function toDateInput(value?: string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+function OverviewTab({ job, summary }: { job: JobLike; summary: SummaryLike }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateJob = useUpdateJob();
+  const { data: clients } = useListClients();
+  const { data: matList } = useGetJobMaterialList(job.id);
+  const { data: estimates } = useListEstimates({ jobId: job.id });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState<OverviewForm>(() => emptyForm(job));
+
+  function emptyForm(j: JobLike): OverviewForm {
+    return {
+      title: j.title ?? "",
+      status: j.status ?? "new",
+      jobType: j.jobType ?? "",
+      priority: j.priority ?? "normal",
+      estimatedValue: j.estimatedValue != null ? String(j.estimatedValue) : "",
+      description: j.description ?? "",
+      startDate: toDateInput(j.startDate),
+      clientId: j.clientId != null ? String(j.clientId) : "none",
+    };
+  }
+
+  const startEditing = () => {
+    setForm(emptyForm(job));
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (!form.title.trim()) {
+      toast({ title: "Title is required", variant: "destructive" });
+      return;
+    }
+    updateJob.mutate(
+      {
+        id: job.id,
+        data: {
+          title: form.title.trim(),
+          status: form.status,
+          jobType: form.jobType.trim() || null,
+          priority: form.priority,
+          estimatedValue: form.estimatedValue.trim() === "" ? null : form.estimatedValue.trim(),
+          description: form.description.trim() || null,
+          startDate: form.startDate || null,
+          clientId: form.clientId === "none" ? null : parseInt(form.clientId),
+        },
+      },
+      {
+        onSuccess: (updated) => {
+          queryClient.setQueryData(getGetJobQueryKey(job.id), updated);
+          queryClient.invalidateQueries({ queryKey: getGetJobSummaryQueryKey(job.id) });
+          setIsEditing(false);
+          toast({ title: "Job updated" });
+        },
+        onError: () => toast({ title: "Failed to update job", variant: "destructive" }),
+      }
+    );
+  };
+
+  const approvedEstimate = (estimates ?? []).find((e) => e.status === "approved");
+  const materialCost = matList?.subtotal ?? 0;
+  const jobValue = approvedEstimate ? approvedEstimate.total : Number(job.estimatedValue ?? 0);
+  const stageLabel = JOB_STAGES.find((s) => s.value === job.status)?.label ?? job.status;
+
+  return (
+    <div className="grid md:grid-cols-3 gap-6">
+      <Card className="md:col-span-2 shadow-sm border-border">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Job Details</CardTitle>
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)} disabled={updateJob.isPending}>
+                <X className="w-4 h-4 mr-1.5" /> Cancel
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={updateJob.isPending}>
+                {updateJob.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Check className="w-4 h-4 mr-1.5" />}
+                Save
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={startEditing}>
+              <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isEditing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Title</label>
+                <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Job title" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Client</label>
+                  <Select value={form.clientId} onValueChange={(v) => setForm((f) => ({ ...f, clientId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {(clients ?? []).map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Stage</label>
+                  <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {JOB_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Type</label>
+                  <Input value={form.jobType} onChange={(e) => setForm((f) => ({ ...f, jobType: e.target.value }))} placeholder="e.g. Remodel" />
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Priority</label>
+                  <Select value={form.priority} onValueChange={(v) => setForm((f) => ({ ...f, priority: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {JOB_PRIORITIES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Estimated Value</label>
+                  <Input type="number" value={form.estimatedValue} onChange={(e) => setForm((f) => ({ ...f, estimatedValue: e.target.value }))} placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 text-sm">Scheduled Date</label>
+                  <Input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Description</label>
+                <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={4} placeholder="Job description" />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-y-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground block mb-1">Type</span>
+                  <span className="font-medium">{job.jobType || "Unspecified"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Priority</span>
+                  <Badge variant={priorityVariant(job.priority)} className="capitalize">
+                    {job.priority}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Scheduled Date</span>
+                  <span className="font-medium flex items-center">
+                    <CalendarIcon className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                    {formatDate(job.startDate) || "TBD"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Target End Date</span>
+                  <span className="font-medium flex items-center">
+                    <CalendarIcon className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                    {formatDate(job.endDate) || "TBD"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Estimated Value</span>
+                  <span className="font-medium text-lg">{formatCurrency(job.estimatedValue)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Actual Cost</span>
+                  <span className="font-medium">{formatCurrency(job.actualCost)}</span>
+                </div>
+              </div>
+              {job.description && (
+                <div className="pt-4 border-t mt-4">
+                  <span className="text-muted-foreground block mb-2 text-sm">Description</span>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{job.description}</p>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="shadow-sm border-border">
+          <CardHeader>
+            <CardTitle>Project Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 p-2 rounded-md">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Job Value</span>
+              </div>
+              <span className="font-bold">{formatCurrency(jobValue)}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 p-2 rounded-md">
+                  <ListTodo className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Material Cost</span>
+              </div>
+              <span className="font-bold">{formatCurrency(materialCost)}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 p-2 rounded-md">
+                  <HardHat className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Stage</span>
+              </div>
+              <Badge variant="outline" className="capitalize">{stageLabel}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-border">
+          <CardHeader>
+            <CardTitle>Activity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 p-2 rounded-md">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Estimates</span>
+              </div>
+              <span className="font-bold">{summary?.estimateCount || 0}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 dark:bg-green-900/30 text-green-600 p-2 rounded-md">
+                  <Receipt className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Receipts</span>
+              </div>
+              <span className="font-bold">{formatCurrency(summary?.receiptTotal || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 p-2 rounded-md">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Photos</span>
+              </div>
+              <span className="font-bold">{summary?.photoCount || 0}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+interface ReceiptForm {
+  vendor: string;
+  amount: string;
+  date: string;
+  category: string;
+  description: string;
+}
+
+const EMPTY_RECEIPT: ReceiptForm = { vendor: "", amount: "", date: "", category: "", description: "" };
+
+function ReceiptsTab({ jobId }: { jobId: number }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: receipts, isLoading } = useListReceipts({ jobId });
+  const createReceipt = useCreateReceipt();
+  const lastObjectPathRef = useRef<string | null>(null);
+
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<ReceiptForm>(EMPTY_RECEIPT);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListReceiptsQueryKey({ jobId }) });
+
+  const resetForm = () => { setForm(EMPTY_RECEIPT); setImageUrl(null); setAdding(false); };
+
+  const handleSave = () => {
+    if (!form.vendor.trim()) {
+      toast({ title: "Vendor is required", variant: "destructive" });
+      return;
+    }
+    createReceipt.mutate(
+      {
+        data: {
+          jobId,
+          vendor: form.vendor.trim(),
+          amount: form.amount.trim() === "" ? 0 : form.amount.trim(),
+          date: form.date || null,
+          category: form.category.trim() || "general",
+          description: form.description.trim() || null,
+          imageUrl: imageUrl,
+        },
+      },
+      {
+        onSuccess: () => {
+          invalidate();
+          queryClient.invalidateQueries({ queryKey: getGetJobSummaryQueryKey(jobId) });
+          resetForm();
+          toast({ title: "Receipt added" });
+        },
+        onError: () => toast({ title: "Failed to add receipt", variant: "destructive" }),
+      }
+    );
+  };
+
+  const list = receipts ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Receipts</CardTitle>
+          <CardDescription>Track material and expense receipts for this job</CardDescription>
+        </div>
+        {!adding && (
+          <Button size="sm" onClick={() => setAdding(true)}><Plus className="w-4 h-4 mr-2" /> Add Receipt</Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {adding && (
+          <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Vendor</label>
+                <Input autoFocus value={form.vendor} onChange={(e) => setForm((f) => ({ ...f, vendor: e.target.value }))} placeholder="Vendor name" />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Amount</label>
+                <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Date</label>
+                <Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1 text-sm">Category</label>
+                <Input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="e.g. materials" />
+              </div>
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1 text-sm">Description</label>
+              <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} placeholder="Optional notes" />
+            </div>
+            <div className="flex items-center gap-3">
+              <ObjectUploader
+                onGetUploadParameters={async (file) => {
+                  const res = await fetch("/api/storage/uploads/request-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+                  });
+                  const { uploadURL, objectPath } = await res.json();
+                  lastObjectPathRef.current = objectPath;
+                  return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
+                }}
+                onComplete={(result) => {
+                  if (result.successful && result.successful.length > 0 && lastObjectPathRef.current) {
+                    setImageUrl(`/api/storage${lastObjectPathRef.current}`);
+                    toast({ title: "Receipt image attached" });
+                  }
+                }}
+                buttonClassName="border border-input bg-background hover:bg-accent h-9 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center justify-center"
+              >
+                <ImageIcon className="w-4 h-4 mr-2" /> {imageUrl ? "Replace Image" : "Attach Image"}
+              </ObjectUploader>
+              {imageUrl && <span className="text-xs text-muted-foreground flex items-center"><Check className="w-3.5 h-3.5 mr-1 text-green-600" /> Image attached</span>}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={resetForm} disabled={createReceipt.isPending}>Cancel</Button>
+              <Button size="sm" onClick={handleSave} disabled={createReceipt.isPending || !form.vendor.trim()}>
+                {createReceipt.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Check className="w-4 h-4 mr-1.5" />}
+                Save Receipt
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>
+        ) : list.length === 0 && !adding ? (
+          <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
+            <Receipt className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
+            <h3 className="text-base font-medium mb-1">No receipts yet</h3>
+            <p className="text-muted-foreground text-sm">Add receipts to track job expenses.</p>
+          </div>
+        ) : list.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-muted-foreground text-xs uppercase">
+                <th className="px-3 py-2 text-left">Vendor</th>
+                <th className="px-3 py-2 text-left">Category</th>
+                <th className="px-3 py-2 text-left">Date</th>
+                <th className="px-3 py-2 text-right">Amount</th>
+                <th className="px-3 py-2 text-right">Image</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {list.map((r) => (
+                <tr key={r.id} className="hover:bg-muted/20">
+                  <td className="px-3 py-2.5">
+                    <div className="font-medium">{r.vendor}</div>
+                    {r.description && <div className="text-xs text-muted-foreground">{r.description}</div>}
+                  </td>
+                  <td className="px-3 py-2.5 capitalize text-muted-foreground">{r.category}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{formatDate(r.date) || "—"}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-medium">{formatCurrency(r.amount)}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    {r.imageUrl ? (
+                      <a href={r.imageUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center justify-end">
+                        <ImageIcon className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function JobDetail() {
   const [, params] = useRoute("/jobs/:id");
   const id = params?.id ? parseInt(params.id) : 0;
   
   const { data: job, isLoading: jobLoading } = useGetJob(id);
   const { data: summary, isLoading: summaryLoading } = useGetJobSummary(id);
+  const { data: estimates } = useListEstimates({ jobId: id });
   const updateJob = useUpdateJob();
   const createPhoto = useCreateJobPhoto();
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const lastObjectPathRef = useRef<string | null>(null);
+
+  const approvedEstimateId = (estimates ?? []).find((e) => e.status === "approved")?.id ?? null;
 
   const handleStatusChange = (newStatus: string) => {
     updateJob.mutate(
@@ -470,99 +1050,16 @@ export default function JobDetail() {
           <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Overview</TabsTrigger>
           <TabsTrigger value="materials" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Materials</TabsTrigger>
           <TabsTrigger value="estimates" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Estimates & Invoices</TabsTrigger>
+          <TabsTrigger value="receipts" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Receipts</TabsTrigger>
           <TabsTrigger value="photos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Photos</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6 pt-4">
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 shadow-sm border-border">
-              <CardHeader>
-                <CardTitle>Job Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-y-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Type</span>
-                    <span className="font-medium">{job.jobType || 'Unspecified'}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Priority</span>
-                    <Badge variant={job.priority === 'high' ? 'destructive' : job.priority === 'medium' ? 'default' : 'secondary'} className="capitalize">
-                      {job.priority}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Start Date</span>
-                    <span className="font-medium flex items-center">
-                      <CalendarIcon className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-                      {formatDate(job.startDate) || 'TBD'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Target End Date</span>
-                    <span className="font-medium flex items-center">
-                      <CalendarIcon className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-                      {formatDate(job.endDate) || 'TBD'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Estimated Value</span>
-                    <span className="font-medium text-lg">{formatCurrency(job.estimatedValue)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Actual Cost</span>
-                    <span className="font-medium">{formatCurrency(job.actualCost)}</span>
-                  </div>
-                </div>
-                
-                {job.description && (
-                  <div className="pt-4 border-t mt-4">
-                    <span className="text-muted-foreground block mb-2 text-sm">Description</span>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{job.description}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-border">
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 p-2 rounded-md">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <span className="font-medium">Estimates</span>
-                  </div>
-                  <span className="font-bold">{summary?.estimateCount || 0}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 dark:bg-green-900/30 text-green-600 p-2 rounded-md">
-                      <Receipt className="w-4 h-4" />
-                    </div>
-                    <span className="font-medium">Receipts</span>
-                  </div>
-                  <span className="font-bold">{formatCurrency(summary?.receiptTotal || 0)}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 p-2 rounded-md">
-                      <ImageIcon className="w-4 h-4" />
-                    </div>
-                    <span className="font-medium">Photos</span>
-                  </div>
-                  <span className="font-bold">{summary?.photoCount || 0}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <OverviewTab job={job} summary={summary} />
         </TabsContent>
         
         <TabsContent value="materials" className="pt-4">
-          <MaterialsTab jobId={id} jobTitle={job.title} jobDescription={job.description} />
+          <MaterialsTab jobId={id} jobTitle={job.title} jobDescription={job.description} approvedEstimateId={approvedEstimateId} />
         </TabsContent>
 
         <TabsContent value="estimates" className="pt-4 space-y-6">

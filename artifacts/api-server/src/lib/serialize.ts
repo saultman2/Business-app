@@ -56,12 +56,17 @@ export function serializeMaterialItem(m: MaterialItem) {
 
 export function serializeEstimate(
   e: Estimate,
-  extra: { clientName?: string | null; jobTitle?: string | null } = {},
+  extra: {
+    clientName?: string | null;
+    jobTitle?: string | null;
+    jobStatus?: string | null;
+  } = {},
 ) {
   return {
     ...e,
     clientName: extra.clientName ?? null,
     jobTitle: extra.jobTitle ?? null,
+    jobStatus: extra.jobStatus ?? null,
     laborFlatCost: n(e.laborFlatCost),
     materialSubtotal: n(e.materialSubtotal),
     laborSubtotal: n(e.laborSubtotal),

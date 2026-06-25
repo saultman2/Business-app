@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
-import { useGetJob, useCreateEstimate } from "@workspace/api-client-react";
+import { useRoute, Link, useLocation } from "wouter";
+import { useGetJob, useCreateEstimate, useCreateEstimateItem } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,10 @@ export default function JobEstimate() {
   
   const { data: job, isLoading } = useGetJob(jobId);
   const createEstimate = useCreateEstimate();
+  const createEstimateItem = useCreateEstimateItem();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [title, setTitle] = useState("Standard Estimate");
   const [items, setItems] = useState([
@@ -48,19 +51,36 @@ export default function JobEstimate() {
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
 
-  const handleSave = () => {
-    createEstimate.mutate(
-      { data: { jobId, title, clientId: job?.clientId } },
-      {
-        onSuccess: () => {
-          toast({ title: "Estimate saved as draft" });
-          // In a real implementation, we'd also save the items here
-        },
-        onError: () => {
-          toast({ title: "Error saving estimate", variant: "destructive" });
-        }
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const estimate = await createEstimate.mutateAsync({
+        data: { jobId, title, clientId: job?.clientId },
+      });
+
+      const lineItems = items.filter(i => i.description.trim());
+      for (let i = 0; i < lineItems.length; i++) {
+        const item = lineItems[i];
+        await createEstimateItem.mutateAsync({
+          estimateId: estimate.id,
+          data: {
+            section: "material",
+            description: item.description.trim(),
+            quantity: Number(item.quantity) || 0,
+            unit: "ea",
+            unitPrice: Number(item.unitPrice) || 0,
+            sortOrder: i,
+          },
+        });
       }
-    );
+
+      toast({ title: "Estimate saved as draft" });
+      navigate(`/jobs/${jobId}`);
+    } catch {
+      toast({ title: "Error saving estimate", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;

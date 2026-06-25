@@ -116,6 +116,7 @@ async function detail(companyId: number, estimateId: number) {
       est: estimatesTable,
       clientName: clientsTable.name,
       jobTitle: jobsTable.title,
+      jobStatus: jobsTable.status,
     })
     .from(estimatesTable)
     .leftJoin(
@@ -148,6 +149,7 @@ async function detail(companyId: number, estimateId: number) {
     ...serializeEstimate(row.est, {
       clientName: row.clientName,
       jobTitle: row.jobTitle,
+      jobStatus: row.jobStatus,
     }),
     items: items.map(serializeEstimateItem),
   };
@@ -304,7 +306,7 @@ router.patch("/estimates/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid job or client reference" });
     return;
   }
-  await db
+  const [updatedEst] = await db
     .update(estimatesTable)
     .set({
       jobId: d.jobId,
@@ -343,6 +345,17 @@ router.patch("/estimates/:id", async (req, res): Promise<void> => {
       warrantyNote: d.warrantyNote,
     })
     .where(eq(estimatesTable.id, params.data.id));
+  if (d.status === "approved" && updatedEst?.jobId) {
+    await db
+      .update(jobsTable)
+      .set({ status: "approved" })
+      .where(
+        and(
+          eq(jobsTable.id, updatedEst.jobId),
+          eq(jobsTable.companyId, req.companyId!),
+        ),
+      );
+  }
   await recalc(req.companyId!, params.data.id);
   res.json(await detail(req.companyId!, params.data.id));
 });
