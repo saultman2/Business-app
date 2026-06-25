@@ -13,6 +13,10 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export interface OkResponse {
+  ok: boolean;
+}
+
 export interface Job {
   id: number;
   title: string;

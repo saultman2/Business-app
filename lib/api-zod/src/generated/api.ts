@@ -139,6 +139,14 @@ export const UpdateCompanyResponse = zod.object({
 
 
 /**
+ * @summary Delete all business data while keeping the account and company profile
+ */
+export const RequestDataDeletionResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary List customers
  */
 export const ListClientsQueryParams = zod.object({

@@ -13,6 +13,7 @@ import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
 import aiRouter from "./ai";
 import crewRouter from "./crew";
+import accountRouter from "./account";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(eventsRouter);
 router.use(storageRouter);
 router.use(aiRouter);
 router.use(crewRouter);
+router.use(accountRouter);
 
 export default router;

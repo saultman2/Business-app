@@ -82,6 +82,7 @@ export * from './materialItemInput';
 export * from './materialItemUpdate';
 export * from './materialListDetail';
 export * from './materialListUpdate';
+export * from './okResponse';
 export * from './payment';
 export * from './paymentInput';
 export * from './receipt';

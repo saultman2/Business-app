@@ -80,6 +80,7 @@ import type {
   MaterialItemUpdate,
   MaterialListDetail,
   MaterialListUpdate,
+  OkResponse,
   PaymentInput,
   Receipt,
   ReceiptInput,
@@ -402,6 +403,146 @@ export const useUpdateCompany = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateCompanyMutationOptions(options));
+    }
+
+export const getDeleteAccountUrl = () => {
+
+
+
+
+  return `/api/account`
+}
+
+/**
+ * @summary Permanently delete the account, all company data, and the login
+ */
+export const deleteAccount = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAccountMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, void> = () => {
+
+
+          return  deleteAccount(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
+
+    export type DeleteAccountMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Permanently delete the account, all company data, and the login
+ */
+export const useDeleteAccount = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAccount>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAccountMutationOptions(options));
+    }
+
+export const getRequestDataDeletionUrl = () => {
+
+
+
+
+  return `/api/account/data-deletion`
+}
+
+/**
+ * @summary Delete all business data while keeping the account and company profile
+ */
+export const requestDataDeletion = async ( options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getRequestDataDeletionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRequestDataDeletionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestDataDeletion>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestDataDeletion>>, TError,void, TContext> => {
+
+const mutationKey = ['requestDataDeletion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestDataDeletion>>, void> = () => {
+
+
+          return  requestDataDeletion(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestDataDeletionMutationResult = NonNullable<Awaited<ReturnType<typeof requestDataDeletion>>>
+
+    export type RequestDataDeletionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete all business data while keeping the account and company profile
+ */
+export const useRequestDataDeletion = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestDataDeletion>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestDataDeletion>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRequestDataDeletionMutationOptions(options));
     }
 
 export const getListClientsUrl = (params?: ListClientsParams,) => {

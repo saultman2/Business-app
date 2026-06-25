@@ -35,6 +35,8 @@ tags:
     description: Dashboard summary data
   - name: Storage
     description: Object storage upload and serving endpoints
+  - name: account
+    description: Account management (data deletion, account deletion)
 
 paths:
   /healthz:
@@ -95,6 +97,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Company"
+
+  # ──────────────────────────────────────
+  # ACCOUNT
+  # ──────────────────────────────────────
+  /account:
+    delete:
+      operationId: deleteAccount
+      tags: [account]
+      summary: Permanently delete the account, all company data, and the login
+      responses:
+        "204":
+          description: Account deleted
+        "502":
+          description: Data deleted but login removal failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /account/data-deletion:
+    post:
+      operationId: requestDataDeletion
+      tags: [account]
+      summary: Delete all business data while keeping the account and company profile
+      responses:
+        "200":
+          description: Data deletion processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
 
   # ──────────────────────────────────────
   # CLIENTS / CUSTOMERS
@@ -1339,6 +1372,13 @@ components:
       properties:
         error:
           type: string
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
 
     DashboardSummary:
       type: object
