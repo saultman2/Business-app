@@ -1153,6 +1153,7 @@ export default function JobDetail() {
   const { data: job, isLoading: jobLoading } = useGetJob(id);
   const { data: summary, isLoading: summaryLoading } = useGetJobSummary(id);
   const { data: estimates } = useListEstimates({ jobId: id });
+  const { data: jobPhotos, isLoading: photosLoading } = useListJobPhotos(id);
   const updateJob = useUpdateJob();
   const createPhoto = useCreateJobPhoto();
   
@@ -1309,11 +1310,43 @@ export default function JobDetail() {
               </ObjectUploader>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-16 border border-dashed rounded-lg bg-muted/10">
-                <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
-                <h3 className="text-lg font-medium mb-1">No photos uploaded</h3>
-                <p className="text-muted-foreground text-sm">Document the job progress with photos.</p>
-              </div>
+              {photosLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="aspect-square w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : jobPhotos && jobPhotos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {jobPhotos.map((photo) => (
+                    <a
+                      key={photo.id}
+                      href={photo.imageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/20"
+                    >
+                      <img
+                        src={photo.imageUrl}
+                        alt={photo.caption ?? `Job photo ${photo.id}`}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      {photo.caption ? (
+                        <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-xs text-white truncate">
+                          {photo.caption}
+                        </div>
+                      ) : null}
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 border border-dashed rounded-lg bg-muted/10">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
+                  <h3 className="text-lg font-medium mb-1">No photos uploaded</h3>
+                  <p className="text-muted-foreground text-sm">Document the job progress with photos.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
