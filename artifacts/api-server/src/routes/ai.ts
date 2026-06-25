@@ -1,9 +1,31 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
 import { requireAuth } from "../lib/auth";
 import { db, companiesTable, jobsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+
+type OpenAIClient = {
+  chat: {
+    completions: {
+      create: (params: {
+        model: string;
+        max_completion_tokens: number;
+        messages: { role: string; content: unknown }[];
+        response_format: { type: string };
+      }) => Promise<{ choices: { message: { content: string | null } }[] }>;
+    };
+  };
+};
+
+function getOpenai(): OpenAIClient | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@workspace/integrations-openai-ai-server") as { openai: OpenAIClient };
+    return mod.openai ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -93,6 +115,12 @@ Base prices on regional averages for the given zip code. Be realistic but not pa
     })),
   ];
 
+  const openai = getOpenai();
+  if (!openai) {
+    res.status(503).json({ error: "AI service is not configured in this environment." });
+    return;
+  }
+
   const completion = await openai.chat.completions.create({
     model: "gpt-5.4",
     max_completion_tokens: 4096,
@@ -145,6 +173,12 @@ router.post("/ai/suggest-materials", async (req, res): Promise<void> => {
   }
 
   const locationContext = zipCode ? `Location: zip code ${zipCode}.` : "";
+
+  const openai = getOpenai();
+  if (!openai) {
+    res.status(503).json({ error: "AI service is not configured in this environment." });
+    return;
+  }
 
   const completion = await openai.chat.completions.create({
     model: "gpt-5.4",

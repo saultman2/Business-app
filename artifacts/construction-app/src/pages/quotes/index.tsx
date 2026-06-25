@@ -179,7 +179,8 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
         },
       });
 
-      for (const item of aiItems) {
+      const itemsToSave = mode === "labor_only" ? aiItems.filter(i => i.section === "labor") : aiItems;
+      for (const item of itemsToSave) {
         await createItem.mutateAsync({
           estimateId: est.id,
           data: {
