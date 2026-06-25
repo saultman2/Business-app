@@ -21,6 +21,7 @@ import {
 import { requireAuth } from "../lib/auth";
 import { ownsClient } from "../lib/ownership";
 import { serializeJob, n, toNumStr } from "../lib/serialize";
+import { hasActiveSubscription, FREE_JOB_LIMIT } from "../lib/revenuecat";
 
 const router: IRouter = Router();
 
@@ -73,6 +74,31 @@ router.post("/jobs", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid client reference" });
     return;
   }
+
+  // Free-tier limit: companies without an active subscription may only keep a
+  // limited number of jobs. Paid plans (Pro/Business) are unlimited.
+  //
+  // Invariant: each Clerk user owns exactly one company (JIT-provisioned by
+  // owner id), so `req.userId` (the company owner) is the subscription identity
+  // and matches the client's `Purchases.logIn(userId)`. When team members are
+  // introduced (a Business feature), resolve the company owner's id here rather
+  // than the requesting user's.
+  const subscribed = await hasActiveSubscription(req.userId!);
+  if (!subscribed) {
+    const [{ c: jobCount }] = await db
+      .select({ c: count() })
+      .from(jobsTable)
+      .where(eq(jobsTable.companyId, req.companyId!));
+    if (jobCount >= FREE_JOB_LIMIT) {
+      res.status(403).json({
+        error: `Free plan is limited to ${FREE_JOB_LIMIT} jobs. Upgrade to Pro for unlimited jobs.`,
+        code: "FREE_LIMIT_REACHED",
+        limit: FREE_JOB_LIMIT,
+      });
+      return;
+    }
+  }
+
   const [job] = await db
     .insert(jobsTable)
     .values({

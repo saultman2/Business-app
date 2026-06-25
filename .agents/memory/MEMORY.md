@@ -3,5 +3,6 @@
 - [Multitenancy](multitenancy.md) — companyId always from req.companyId, never request body; all queries scoped by companyId
 - [Upload objectPath](upload-objectpath.md) — objectPath must come from POST /api/storage/uploads/request-url, not GCS PUT response
 - [recharts HMR quirk](recharts-hmr-quirk.md) — transient "Invalid hook call / useRef null" from recharts on Vite HMR is not a real React-dup bug; reload
+- [RevenueCat connector + gating](revenuecat-connector.md) — connector token fetch, pro/business entitlement model, user↔company-owner invariant, free-cap fail-open
 - [Orval query options](orval-query-options.md) — generated useGetX hooks need a queryKey (via getGetXQueryKey) when you also pass enabled/other options
 - [Clerk Expo reset-password](clerk-expo-reset-password.md) — sendCode() typed 0-args in v3.5.x; pass { email } with @ts-expect-error (runtime works)

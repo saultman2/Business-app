@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { AppText, Button, Card, Field } from "@/components/Themed";
 import { useColors } from "@/hooks/useColors";
+import { useSubscription } from "@/lib/revenuecat";
 
 function confirm(
   title: string,
@@ -49,6 +50,7 @@ export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { signOut } = useAuth();
+  const { logOut } = useSubscription();
 
   const { data: company, isLoading } = useGetCompany();
   const updateCompany = useUpdateCompany();
@@ -121,6 +123,7 @@ export default function AccountScreen() {
       async () => {
         try {
           await deleteAccount.mutateAsync();
+          await logOut();
           await signOut();
           router.replace("/sign-in");
         } catch {

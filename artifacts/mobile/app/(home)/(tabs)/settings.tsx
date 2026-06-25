@@ -15,6 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText, Card, Divider } from "@/components/Themed";
 import { useColors } from "@/hooks/useColors";
+import { useSubscription } from "@/lib/revenuecat";
+
+const PLAN_LABEL: Record<string, string> = {
+  free: "Free plan",
+  pro: "Pro plan",
+  business: "Business plan",
+};
 
 function Row({
   icon,
@@ -78,8 +85,10 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const { data: company } = useGetCompany();
+  const { plan, logOut } = useSubscription();
 
   const email = user?.primaryEmailAddress?.emailAddress ?? "Signed in";
+  const planLabel = PLAN_LABEL[plan] ?? "Free plan";
 
   return (
     <ScrollView
@@ -106,6 +115,24 @@ export default function SettingsScreen() {
           </AppText>
         </View>
       </Card>
+
+      <View style={{ gap: 4 }}>
+        <AppText variant="label" tone="muted" style={{ marginLeft: 4 }}>
+          Subscription
+        </AppText>
+        <Card style={{ padding: 6 }}>
+          <Row
+            icon={plan === "free" ? "zap" : "award"}
+            title={planLabel}
+            subtitle={
+              plan === "free"
+                ? "Upgrade to unlock unlimited jobs & more"
+                : "Manage your plan & pricing"
+            }
+            onPress={() => router.push("/paywall")}
+          />
+        </Card>
+      </View>
 
       <View style={{ gap: 4 }}>
         <AppText variant="label" tone="muted" style={{ marginLeft: 4 }}>
@@ -143,7 +170,10 @@ export default function SettingsScreen() {
             icon="log-out"
             title="Sign out"
             destructive
-            onPress={() => signOut()}
+            onPress={async () => {
+              await logOut();
+              await signOut();
+            }}
           />
         </Card>
       </View>

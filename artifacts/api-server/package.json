@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@replit/revenuecat-sdk": "^4.2.0",
     "@clerk/express": "^2.1.30",
     "@clerk/shared": "^4.20.0",
     "@google-cloud/storage": "^7.21.0",
