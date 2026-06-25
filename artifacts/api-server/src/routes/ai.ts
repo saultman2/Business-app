@@ -108,6 +108,7 @@ const lineItemSchema = z.object({
 
 const aiResponseSchema = z.object({
   items: z.array(lineItemSchema),
+  disclaimer: z.string().optional(),
 });
 
 router.post("/ai/quote-estimate", async (req, res): Promise<void> => {
@@ -144,13 +145,21 @@ router.post("/ai/quote-estimate", async (req, res): Promise<void> => {
     ? "Return ONLY labor line items (section: \"labor\"). Do NOT include any materials."
     : "Return both labor line items (section: \"labor\") and material line items (section: \"material\").";
 
-  const systemPrompt = `You are a construction cost estimator. Generate realistic line-item cost estimates based on regional US pricing.
+  const systemPrompt = `You are a licensed construction estimator with access to current US material pricing from Home Depot and Lowe's.
+
+Your job is to generate itemized cost estimates for construction work.
+- Use realistic current retail prices from Home Depot / Lowe's for all materials. If you're confident about a current price, use it. If uncertain, use a conservative estimate and note it.
+- Labor rates should reflect the local market for zip code: ${zipCode || "US national average"}.
+- Do NOT inflate prices. Aim for what a contractor would actually pay at their local big-box store.
 ${modeContext}
+
 For labor items: include hours and hourlyRate (leave qty/unitPrice null).
 For material items: include qty, unit, and unitPrice (leave hours/hourlyRate null).
-Respond ONLY with valid JSON matching this schema:
-{ "items": [ { "description": string, "qty": number|null, "unit": string|null, "unitPrice": number|null, "hours": number|null, "hourlyRate": number|null, "section": "labor"|"material"|"equipment"|"other" } ] }
-Base prices on regional averages for the given zip code. Be realistic but not padded.`;
+
+IMPORTANT: In the disclaimer field, list the top 3–5 most expensive materials and their assumed unit prices so the estimator can verify them quickly.
+
+Respond ONLY with valid JSON:
+{ "items": [ { "description": string, "qty": number|null, "unit": string|null, "unitPrice": number|null, "hours": number|null, "hourlyRate": number|null, "section": "labor"|"material"|"equipment"|"other" } ], "disclaimer": "string — note assumed prices and any caveats" }`;
 
   type ContentPart =
     | { type: "text"; text: string }
@@ -192,7 +201,8 @@ Base prices on regional averages for the given zip code. Be realistic but not pa
     return;
   }
 
-  res.json({ items: parsed2.items, disclaimer: "These are rough estimates based on regional averages — review and adjust before sending." });
+  const fallbackDisclaimer = "Prices are based on current Home Depot / Lowe's retail rates — review and adjust before sending.";
+  res.json({ items: parsed2.items, disclaimer: parsed2.disclaimer ?? fallbackDisclaimer });
 });
 
 router.post("/ai/suggest-materials", async (req, res): Promise<void> => {
@@ -238,9 +248,14 @@ router.post("/ai/suggest-materials", async (req, res): Promise<void> => {
     messages: [
       {
         role: "system",
-        content: `You are a construction materials estimator. Return a JSON list of materials needed for the described job with realistic pricing.
-Respond ONLY with valid JSON: { "items": [ { "name": string, "description": string|null, "quantity": number, "unit": string, "unitPrice": number, "category": string|null } ] }
-Base prices on regional averages${zipCode ? ` for zip ${zipCode}` : ""}.`,
+        content: `You are a licensed construction materials estimator with access to current US pricing from Home Depot and Lowe's.
+
+Return a JSON list of materials needed for the described job with realistic current retail pricing.
+- Use current Home Depot / Lowe's retail prices for all materials. Note any prices that are uncertain.
+- Labor rates should reflect the local market${zipCode ? ` for zip ${zipCode}` : " (US national average)"}.
+- Do NOT inflate prices. Aim for what a contractor would actually pay at their local big-box store.
+
+Respond ONLY with valid JSON: { "items": [ { "name": string, "description": string|null, "quantity": number, "unit": string, "unitPrice": number, "category": string|null } ] }`,
       },
       {
         role: "user",

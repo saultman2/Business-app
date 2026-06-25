@@ -306,7 +306,11 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
         {/* Disclaimer */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2.5 text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p className="text-sm">{disclaimer}</p>
+          <div className="text-sm">
+            <p className="font-medium mb-0.5">AI Draft — Verify before sending</p>
+            <p>{disclaimer}</p>
+            <p className="mt-1 text-xs text-amber-700">Pricing is based on current Home Depot / Lowe's retail rates for your region. Always confirm final prices with your supplier before submitting to the client.</p>
+          </div>
         </div>
 
         {/* Professional Quote Document */}
