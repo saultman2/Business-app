@@ -3,3 +3,4 @@
 - [Multitenancy](multitenancy.md) — companyId always from req.companyId, never request body; all queries scoped by companyId
 - [Upload objectPath](upload-objectpath.md) — objectPath must come from POST /api/storage/uploads/request-url, not GCS PUT response
 - [recharts HMR quirk](recharts-hmr-quirk.md) — transient "Invalid hook call / useRef null" from recharts on Vite HMR is not a real React-dup bug; reload
+- [Orval query options](orval-query-options.md) — generated useGetX hooks need a queryKey (via getGetXQueryKey) when you also pass enabled/other options

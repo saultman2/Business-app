@@ -344,7 +344,8 @@ router.patch("/estimates/:id", async (req, res): Promise<void> => {
       terms: d.terms,
       warrantyNote: d.warrantyNote,
     })
-    .where(eq(estimatesTable.id, params.data.id));
+    .where(eq(estimatesTable.id, params.data.id))
+    .returning();
   if (d.status === "approved" && updatedEst?.jobId) {
     await db
       .update(jobsTable)

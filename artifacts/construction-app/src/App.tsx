@@ -25,7 +25,6 @@ import QuotesPage from "@/pages/quotes/index";
 import FinancesPage from "@/pages/finances";
 import NavigatePage from "@/pages/navigate";
 import CrewPage from "@/pages/crew";
-import AiToolsPage from "@/pages/ai-tools";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -153,7 +152,6 @@ function ProtectedRoutes() {
         <Route path="/finances" component={FinancesPage} />
         <Route path="/navigate" component={NavigatePage} />
         <Route path="/crew" component={CrewPage} />
-        <Route path="/ai-tools" component={AiToolsPage} />
         <Route path="/invoices" component={InvoicesPage} />
         <Route path="/invoices/new" component={NewInvoicePage} />
         <Route path="/invoices/:id/edit" component={EditInvoicePage} />

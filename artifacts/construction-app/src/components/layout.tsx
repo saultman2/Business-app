@@ -8,7 +8,6 @@ import {
   Menu,
   X,
   Zap,
-  Sparkles,
   Wallet,
   UsersRound,
   LogOut,
@@ -29,7 +28,6 @@ const nav = [
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/crew", label: "Crew", icon: UsersRound },
   { href: "/finances", label: "Finances", icon: Wallet },
-  { href: "/ai-tools", label: "AI Tools", icon: Sparkles },
 ];
 
 // 5 most common actions for the mobile bottom-tab bar

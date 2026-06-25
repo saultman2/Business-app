@@ -1170,6 +1170,84 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
 
+  /crew:
+    get:
+      operationId: listCrew
+      tags: [crew]
+      summary: List crew members and subcontractors
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [employee, subcontractor]
+      responses:
+        "200":
+          description: List of crew members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrewMember"
+    post:
+      operationId: createCrewMember
+      tags: [crew]
+      summary: Create a crew member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrewMemberInput"
+      responses:
+        "201":
+          description: Created crew member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrewMember"
+
+  /crew/{id}:
+    patch:
+      operationId: updateCrewMember
+      tags: [crew]
+      summary: Update a crew member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrewMemberUpdate"
+      responses:
+        "200":
+          description: Updated crew member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrewMember"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteCrewMember
+      tags: [crew]
+      summary: Delete a crew member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -1383,6 +1461,75 @@ components:
         state:
           type: [string, "null"]
         zipCode:
+          type: [string, "null"]
+        notes:
+          type: [string, "null"]
+
+    CrewMember:
+      type: object
+      required: [id, type, name, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [employee, subcontractor]
+        name:
+          type: string
+        role:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        company:
+          type: [string, "null"]
+        specialty:
+          type: [string, "null"]
+        notes:
+          type: [string, "null"]
+        createdAt:
+          type: string
+
+    CrewMemberInput:
+      type: object
+      required: [name]
+      properties:
+        type:
+          type: string
+          enum: [employee, subcontractor]
+        name:
+          type: string
+        role:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        company:
+          type: [string, "null"]
+        specialty:
+          type: [string, "null"]
+        notes:
+          type: [string, "null"]
+
+    CrewMemberUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [employee, subcontractor]
+        name:
+          type: string
+        role:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        company:
+          type: [string, "null"]
+        specialty:
           type: [string, "null"]
         notes:
           type: [string, "null"]

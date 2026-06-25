@@ -7,3 +7,4 @@ export * from "./invoices";
 export * from "./photos";
 export * from "./receipts";
 export * from "./events";
+export * from "./crew";

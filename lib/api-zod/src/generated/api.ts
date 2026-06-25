@@ -1512,3 +1512,80 @@ export const RequestUploadUrlResponse = zod.object({
 })
 
 
+/**
+ * @summary List crew members and subcontractors
+ */
+export const ListCrewQueryParams = zod.object({
+  "type": zod.enum(['employee', 'subcontractor']).optional()
+})
+
+export const ListCrewResponseItem = zod.object({
+  "id": zod.number(),
+  "type": zod.enum(['employee', 'subcontractor']),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "specialty": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListCrewResponse = zod.array(ListCrewResponseItem)
+
+
+/**
+ * @summary Create a crew member
+ */
+export const CreateCrewMemberBody = zod.object({
+  "type": zod.enum(['employee', 'subcontractor']).optional(),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "specialty": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a crew member
+ */
+export const UpdateCrewMemberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCrewMemberBody = zod.object({
+  "type": zod.enum(['employee', 'subcontractor']).optional(),
+  "name": zod.string().optional(),
+  "role": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "specialty": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateCrewMemberResponse = zod.object({
+  "id": zod.number(),
+  "type": zod.enum(['employee', 'subcontractor']),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "specialty": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a crew member
+ */
+export const DeleteCrewMemberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+

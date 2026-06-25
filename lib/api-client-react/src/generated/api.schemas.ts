@@ -212,6 +212,83 @@ export interface ClientUpdate {
   notes?: string | null;
 }
 
+export type CrewMemberType = typeof CrewMemberType[keyof typeof CrewMemberType];
+
+
+export const CrewMemberType = {
+  employee: 'employee',
+  subcontractor: 'subcontractor',
+} as const;
+
+export interface CrewMember {
+  id: number;
+  type: CrewMemberType;
+  name: string;
+  /** @nullable */
+  role?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  specialty?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type CrewMemberInputType = typeof CrewMemberInputType[keyof typeof CrewMemberInputType];
+
+
+export const CrewMemberInputType = {
+  employee: 'employee',
+  subcontractor: 'subcontractor',
+} as const;
+
+export interface CrewMemberInput {
+  type?: CrewMemberInputType;
+  name: string;
+  /** @nullable */
+  role?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  specialty?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type CrewMemberUpdateType = typeof CrewMemberUpdateType[keyof typeof CrewMemberUpdateType];
+
+
+export const CrewMemberUpdateType = {
+  employee: 'employee',
+  subcontractor: 'subcontractor',
+} as const;
+
+export interface CrewMemberUpdate {
+  type?: CrewMemberUpdateType;
+  name?: string;
+  /** @nullable */
+  role?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  specialty?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
 export interface ClientHistory {
   clientId: number;
   totalJobs: number;
@@ -939,4 +1016,16 @@ category?: string;
 export type ListEventsParams = {
 jobId?: number;
 };
+
+export type ListCrewParams = {
+type?: ListCrewType;
+};
+
+export type ListCrewType = typeof ListCrewType[keyof typeof ListCrewType];
+
+
+export const ListCrewType = {
+  employee: 'employee',
+  subcontractor: 'subcontractor',
+} as const;
 

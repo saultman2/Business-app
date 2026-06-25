@@ -21,6 +21,12 @@ import {
   getGetJobMaterialListQueryKey,
   getListEstimatesQueryKey,
   getListReceiptsQueryKey,
+  getGetEstimateQueryKey,
+  useListCrew,
+  useListJobPhotos,
+  type Job,
+  type JobSummary,
+  type CrewMember,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,9 +38,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@workspace/object-storage-web";
-import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Pencil, Download, Calendar as CalendarIcon } from "lucide-react";
+import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Pencil, Download, Calendar as CalendarIcon, Send, Copy, MessageSquare, Mail, Phone } from "lucide-react";
 
 interface AiMaterialSuggestion {
   name: string;
@@ -160,7 +167,10 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: approvedEstimate } = useGetEstimate(approvedEstimateId ?? 0, {
-    query: { enabled: !!approvedEstimateId },
+    query: {
+      enabled: !!approvedEstimateId,
+      queryKey: getGetEstimateQueryKey(approvedEstimateId ?? 0),
+    },
   });
 
   const [newRow, setNewRow] = useState<NewItemRow>(EMPTY_NEW_ITEM);
@@ -505,8 +515,8 @@ const JOB_PRIORITIES = [
   { value: "urgent", label: "Urgent" },
 ];
 
-type JobLike = NonNullable<ReturnType<typeof useGetJob>["data"]>;
-type SummaryLike = ReturnType<typeof useGetJobSummary>["data"];
+type JobLike = Job;
+type SummaryLike = JobSummary | undefined;
 
 interface OverviewForm {
   title: string;
@@ -970,6 +980,172 @@ function ReceiptsTab({ jobId }: { jobId: number }) {
   );
 }
 
+function buildJobBrief(opts: {
+  job: Job;
+  items: { name: string; quantity?: number | null; unit?: string | null; unitPrice?: number | null }[];
+  photoCount: number;
+}): string {
+  const { job, items, photoCount } = opts;
+  const lines: string[] = [];
+  lines.push(`JOB BRIEF — ${job.title}`);
+  if (job.clientName) lines.push(`Client: ${job.clientName}`);
+  if (job.address) lines.push(`Address: ${job.address}`);
+  lines.push("");
+  if (job.description) {
+    lines.push("Description:");
+    lines.push(job.description);
+    lines.push("");
+  }
+  if (items.length > 0) {
+    lines.push("Materials Needed:");
+    for (const it of items) {
+      const qty = it.quantity ?? 1;
+      const unit = it.unit ?? "ea";
+      lines.push(`- ${it.name} (${qty} ${unit})`);
+    }
+    lines.push("");
+  }
+  if (photoCount > 0) {
+    lines.push(`Photos: ${photoCount} attached on the job page.`);
+  }
+  lines.push("");
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  lines.push(`${window.location.origin}${base}/jobs/${job.id}`);
+  return lines.join("\n");
+}
+
+function SendToCrewDialog({
+  job,
+  jobId,
+  open,
+  onOpenChange,
+}: {
+  job: Job;
+  jobId: number;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const { data: crew, isLoading } = useListCrew({});
+  const { data: matList } = useGetJobMaterialList(jobId);
+  const { data: photos } = useListJobPhotos(jobId);
+  const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const items = matList?.items ?? [];
+  const photoCount = photos?.length ?? 0;
+  const selected = (crew ?? []).find((c) => c.id === selectedId) ?? null;
+  const brief = buildJobBrief({ job, items, photoCount });
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(brief);
+      toast({ title: "Job brief copied to clipboard" });
+    } catch {
+      toast({ title: "Could not copy", variant: "destructive" });
+    }
+  };
+
+  const handleSms = () => {
+    const phone = selected?.phone ?? "";
+    window.location.href = `sms:${phone}?body=${encodeURIComponent(brief)}`;
+  };
+
+  const handleEmail = () => {
+    const email = selected?.email ?? "";
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(
+      `Job Brief — ${job.title}`,
+    )}&body=${encodeURIComponent(brief)}`;
+  };
+
+  const handleOpenChange = (o: boolean) => {
+    if (!o) setSelectedId(null);
+    onOpenChange(o);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Send Job Brief</DialogTitle>
+          <DialogDescription>
+            Pick a crew member or subcontractor, then send via their messaging app or copy
+            the brief.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <div className="text-sm font-medium mb-2">Recipient</div>
+            {isLoading ? (
+              <Skeleton className="h-20 w-full" />
+            ) : !crew || crew.length === 0 ? (
+              <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4 text-center">
+                No crew yet.{" "}
+                <Link href="/crew" className="text-primary underline">
+                  Add team members
+                </Link>{" "}
+                first.
+              </div>
+            ) : (
+              <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
+                {crew.map((m: CrewMember) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedId(m.id)}
+                    className={`w-full text-left px-3 py-2.5 min-h-12 flex items-center justify-between gap-2 transition-colors ${
+                      selectedId === m.id ? "bg-primary/10" : "hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{m.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[m.type === "subcontractor" ? m.company : m.role, m.phone, m.email]
+                          .filter(Boolean)
+                          .join(" · ") || "No contact info"}
+                      </div>
+                    </div>
+                    {selectedId === m.id && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Preview</div>
+            <pre className="text-xs bg-muted/40 rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto font-sans">
+              {brief}
+            </pre>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleCopy} className="flex-1">
+              <Copy className="h-4 w-4 mr-2" /> Copy
+            </Button>
+            <Button
+              onClick={handleSms}
+              disabled={!selected?.phone}
+              className="flex-1"
+              title={!selected?.phone ? "Selected recipient has no phone number" : undefined}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" /> Text
+            </Button>
+            <Button
+              onClick={handleEmail}
+              disabled={!selected?.email}
+              className="flex-1"
+              title={!selected?.email ? "Selected recipient has no email" : undefined}
+            >
+              <Mail className="h-4 w-4 mr-2" /> Email
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function JobDetail() {
   const [, params] = useRoute("/jobs/:id");
   const id = params?.id ? parseInt(params.id) : 0;
@@ -985,6 +1161,7 @@ export default function JobDetail() {
   const lastObjectPathRef = useRef<string | null>(null);
 
   const approvedEstimateId = (estimates ?? []).find((e) => e.status === "approved")?.id ?? null;
+  const [sendOpen, setSendOpen] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     updateJob.mutate(
@@ -1039,19 +1216,24 @@ export default function JobDetail() {
               <SelectItem value="paid">Paid</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setSendOpen(true)}>
+            <Send className="w-4 h-4 mr-2" /> Send to Crew
+          </Button>
           <Link href={`/quotes?jobId=${job.id}`}>
             <Button><Plus className="w-4 h-4 mr-2" /> Create Estimate</Button>
           </Link>
         </div>
       </div>
+
+      <SendToCrewDialog job={job} jobId={id} open={sendOpen} onOpenChange={setSendOpen} />
       
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-lg">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Overview</TabsTrigger>
-          <TabsTrigger value="materials" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Materials</TabsTrigger>
-          <TabsTrigger value="estimates" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Estimates & Invoices</TabsTrigger>
-          <TabsTrigger value="receipts" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Receipts</TabsTrigger>
-          <TabsTrigger value="photos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Photos</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto no-scrollbar justify-start bg-muted/50 p-1 rounded-lg">
+          <TabsTrigger value="overview" className="shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm">Overview</TabsTrigger>
+          <TabsTrigger value="materials" className="shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm">Materials</TabsTrigger>
+          <TabsTrigger value="estimates" className="shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm">Estimates & Invoices</TabsTrigger>
+          <TabsTrigger value="receipts" className="shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm">Receipts</TabsTrigger>
+          <TabsTrigger value="photos" className="shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm">Photos</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6 pt-4">
@@ -1081,6 +1263,10 @@ export default function JobDetail() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="receipts" className="pt-4">
+          <ReceiptsTab jobId={id} />
         </TabsContent>
 
         <TabsContent value="photos" className="pt-4">
