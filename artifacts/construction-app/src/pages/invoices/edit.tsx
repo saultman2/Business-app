@@ -16,27 +16,30 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Printer, Sparkles, Plus, Trash2, Save, ArrowLeft, Loader2, FileText,
+  Printer, Sparkles, Plus, Trash2, Save, ArrowLeft, Loader2, FileText, Download, Send, CheckCircle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { InvoiceDocument } from "./invoice-document";
 import {
-  type Template,
-  type LineItem,
-  lineTotal,
-  newLineItem,
+  type Template, type LineItem, lineTotal, newLineItem,
 } from "./invoice-types";
 import { TemplatePicker } from "./template-picker";
 import "./invoice-templates.css";
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  draft:   { label: "Draft",   variant: "secondary" },
+  sent:    { label: "Sent",    variant: "default" },
+  unpaid:  { label: "Unpaid",  variant: "secondary" },
+  partial: { label: "Partial", variant: "default" },
+  paid:    { label: "Paid",    variant: "outline" },
+  overdue: { label: "Overdue", variant: "destructive" },
+};
 
 export default function EditInvoicePage() {
   const [, params] = useRoute("/invoices/:id/edit");
@@ -59,6 +62,7 @@ export default function EditInvoicePage() {
   const [invoiceDate, setInvoiceDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [lineItems, setLineItems] = useState<LineItem[]>([newLineItem()]);
+  const [taxRate, setTaxRate] = useState<number>(0);
   const [servicesDescription, setServicesDescription] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [notes, setNotes] = useState("");
@@ -76,10 +80,9 @@ export default function EditInvoicePage() {
     setServicesDescription(invoice.servicesDescription ?? "");
     setPaymentTerms(invoice.paymentTerms ?? "");
     setNotes(invoice.notes ?? "");
+    setTaxRate(invoice.taxRate ?? 0);
     if (invoice.lineItemsJson) {
-      try {
-        setLineItems(JSON.parse(invoice.lineItemsJson) as LineItem[]);
-      } catch { /* keep default */ }
+      try { setLineItems(JSON.parse(invoice.lineItemsJson) as LineItem[]); } catch { /* keep default */ }
     }
     setInitialized(true);
   }, [invoice, initialized]);
@@ -114,11 +117,13 @@ export default function EditInvoicePage() {
   }, [importedEstimate, toast]);
 
   const addLineItem = () => setLineItems((prev) => [...prev, newLineItem()]);
-  const removeLineItem = (id: string) => setLineItems((prev) => prev.filter((i) => i.id !== id));
+  const removeLineItem = (itemId: string) => setLineItems((prev) => prev.filter((i) => i.id !== itemId));
   const updateLineItem = (itemId: string, field: keyof LineItem, value: string | number) =>
     setLineItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, [field]: value } : i)));
 
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
+  const taxAmount = parseFloat(((taxRate / 100) * subtotal).toFixed(2));
+  const totalAmount = subtotal + taxAmount;
 
   const handleAiGenerate = useCallback(async () => {
     try {
@@ -155,7 +160,9 @@ export default function EditInvoicePage() {
           invoiceNumber,
           invoiceDate,
           dueDate,
-          totalAmount: subtotal,
+          totalAmount,
+          taxRate: taxRate > 0 ? taxRate : null,
+          taxAmount: taxRate > 0 ? taxAmount : null,
           lineItemsJson: JSON.stringify(lineItems),
           servicesDescription: servicesDescription || undefined,
           paymentTerms: paymentTerms || undefined,
@@ -167,27 +174,54 @@ export default function EditInvoicePage() {
     } catch {
       toast({ title: "Failed to update invoice", variant: "destructive" });
     }
-  }, [id, selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, subtotal, lineItems, servicesDescription, paymentTerms, notes, template, updateInvoice, toast]);
+  }, [id, selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, updateInvoice, toast]);
+
+  const handleStatusChange = useCallback(async (newStatus: string) => {
+    if (!invoice) return;
+    try {
+      await updateInvoice.mutateAsync({ id, data: { status: newStatus, totalAmount: invoice.totalAmount } });
+      toast({ title: `Invoice marked as ${newStatus}` });
+    } catch {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    }
+  }, [invoice, id, updateInvoice, toast]);
 
   if (isLoading || !initialized) {
     return <div className="p-8"><Skeleton className="h-96 w-full max-w-3xl mx-auto" /></div>;
   }
 
   const logoUrl = company?.logoUrl ?? null;
+  const statusInfo = STATUS_MAP[invoice?.status ?? "draft"] ?? STATUS_MAP.draft;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide">
-        <Link href={`/invoices/${id}`}>
+      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide flex-wrap">
+        <Link href="/invoices">
           <Button variant="ghost" size="sm" className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" /> Invoices
           </Button>
         </Link>
-        <h1 className="text-xl font-bold flex-1">
-          Edit Invoice {invoiceNumber ? `· ${invoiceNumber}` : ""}
+        <h1 className="text-xl font-bold flex-1 min-w-0 truncate">
+          {invoiceNumber || `INV-${id}`}
         </h1>
+        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+
+        {invoice?.status === "draft" && (
+          <Button variant="outline" size="sm" onClick={() => handleStatusChange("sent")} disabled={updateInvoice.isPending} className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50">
+            <Send className="h-4 w-4" /> Mark Sent
+          </Button>
+        )}
+        {invoice?.status !== "paid" && invoice?.status !== "draft" && (
+          <Button variant="outline" size="sm" onClick={() => handleStatusChange("paid")} disabled={updateInvoice.isPending} className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50">
+            <CheckCircle className="h-4 w-4" /> Mark Paid
+          </Button>
+        )}
+
         <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
-          <Printer className="h-4 w-4" /> Print / PDF
+          <Download className="h-4 w-4" /> Download PDF
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
+          <Printer className="h-4 w-4" /> Print
         </Button>
         <Button size="sm" onClick={handleSave} disabled={updateInvoice.isPending} className="gap-1.5">
           {updateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -239,6 +273,13 @@ export default function EditInvoicePage() {
             {selectedClient && (
               <div className="text-sm text-muted-foreground rounded-md bg-muted px-3 py-2">
                 Client: <span className="font-medium text-foreground">{selectedClient.name}</span>
+                {selectedClient.address && <div className="text-xs mt-0.5">{selectedClient.address}</div>}
+              </div>
+            )}
+            {!selectedClient && invoice?.clientAddress && (
+              <div className="text-sm text-muted-foreground rounded-md bg-muted px-3 py-2">
+                <span className="font-medium text-foreground">{invoice.clientName}</span>
+                <div className="text-xs mt-0.5">{invoice.clientAddress}</div>
               </div>
             )}
 
@@ -264,7 +305,7 @@ export default function EditInvoicePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">Selecting an estimate replaces the current line items.</p>
+                <p className="text-[11px] text-muted-foreground">Selecting replaces current line items.</p>
               </div>
             )}
           </div>
@@ -331,7 +372,29 @@ export default function EditInvoicePage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-end text-sm font-semibold pr-1">Total: {formatCurrency(subtotal)}</div>
+            <div className="space-y-2">
+              <Label className="text-sm">Tax Rate (%)</Label>
+              <Input
+                type="number" min="0" max="100" step="0.01"
+                value={taxRate}
+                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                className="bg-background h-8"
+              />
+            </div>
+            <div className="rounded-md bg-muted px-3 py-2 space-y-1 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span><span className="tabular-nums">{formatCurrency(subtotal)}</span>
+              </div>
+              {taxRate > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax ({taxRate}%)</span><span className="tabular-nums">{formatCurrency(taxAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold border-t border-border pt-1 mt-1">
+                <span>Total</span><span className="tabular-nums">{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -347,11 +410,11 @@ export default function EditInvoicePage() {
             </Button>
             <div className="space-y-2">
               <Label className="text-sm">Services Description</Label>
-              <Textarea value={servicesDescription} onChange={(e) => setServicesDescription(e.target.value)} placeholder="Professional description of services rendered..." className="bg-background resize-none h-20 text-sm" />
+              <Textarea value={servicesDescription} onChange={(e) => setServicesDescription(e.target.value)} placeholder="Professional description..." className="bg-background resize-none h-20 text-sm" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm">Payment Terms</Label>
-              <Textarea value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="e.g. Net 30 — Payment due within 30 days..." className="bg-background resize-none h-16 text-sm" />
+              <Textarea value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="e.g. Net 30..." className="bg-background resize-none h-16 text-sm" />
             </div>
           </div>
 
@@ -376,12 +439,14 @@ export default function EditInvoicePage() {
               companyEmail={company?.email ?? ""}
               logoUrl={logoUrl}
               clientName={selectedClient?.name ?? invoice?.clientName ?? ""}
-              clientAddress={selectedClient?.address ?? ""}
+              clientAddress={selectedClient?.address ?? invoice?.clientAddress ?? ""}
               jobTitle={selectedJob?.title ?? invoice?.jobTitle ?? ""}
               lineItems={lineItems}
               servicesDescription={servicesDescription}
               paymentTerms={paymentTerms}
               notes={notes}
+              taxRate={taxRate > 0 ? taxRate : undefined}
+              taxAmount={taxRate > 0 ? taxAmount : undefined}
               onEditInvoiceNumber={setInvoiceNumber}
             />
           </div>

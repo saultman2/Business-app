@@ -23,15 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  Printer,
-  Sparkles,
-  Plus,
-  Trash2,
-  Save,
-  ArrowLeft,
-  Loader2,
-  Check,
-  FileText,
+  Printer, Sparkles, Plus, Trash2, Save, ArrowLeft, Loader2, FileText, Download,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Link } from "wouter";
@@ -67,6 +59,7 @@ export default function NewInvoicePage() {
     const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10);
   });
   const [lineItems, setLineItems] = useState<LineItem[]>([newLineItem()]);
+  const [taxRate, setTaxRate] = useState<number>(0);
   const [servicesDescription, setServicesDescription] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [notes, setNotes] = useState("");
@@ -76,7 +69,9 @@ export default function NewInvoicePage() {
   const jobIdNum = selectedJobId !== "none" ? parseInt(selectedJobId) : undefined;
   const selectedJob = jobs?.find((j) => j.id === jobIdNum);
   const selectedClient = clients?.find((c) =>
-    selectedJob ? c.id === selectedJob.clientId : (selectedClientId !== "none" ? c.id === parseInt(selectedClientId) : false)
+    selectedJob
+      ? c.id === selectedJob.clientId
+      : selectedClientId !== "none" ? c.id === parseInt(selectedClientId) : false
   );
 
   const { data: jobEstimates } = useListEstimates(
@@ -106,12 +101,10 @@ export default function NewInvoicePage() {
     setLineItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
 
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
+  const taxAmount = parseFloat(((taxRate / 100) * subtotal).toFixed(2));
+  const totalAmount = subtotal + taxAmount;
 
   const handleAiGenerate = useCallback(async () => {
-    if (!selectedJob && selectedJobId === "none") {
-      toast({ title: "Select a job to generate a description", variant: "destructive" });
-      return;
-    }
     try {
       const result = await aiDescription.mutateAsync({
         data: {
@@ -134,7 +127,7 @@ export default function NewInvoicePage() {
     } catch {
       toast({ title: "AI generation failed", variant: "destructive" });
     }
-  }, [selectedJob, selectedJobId, lineItems, aiNotes, aiDescription, toast]);
+  }, [selectedJob, lineItems, aiNotes, aiDescription, toast]);
 
   const handleSave = useCallback(async () => {
     try {
@@ -145,7 +138,9 @@ export default function NewInvoicePage() {
           invoiceNumber,
           invoiceDate,
           dueDate,
-          totalAmount: subtotal,
+          totalAmount,
+          taxRate: taxRate > 0 ? taxRate : undefined,
+          taxAmount: taxRate > 0 ? taxAmount : undefined,
           lineItemsJson: JSON.stringify(lineItems),
           servicesDescription: servicesDescription || undefined,
           paymentTerms: paymentTerms || undefined,
@@ -154,17 +149,17 @@ export default function NewInvoicePage() {
         },
       });
       toast({ title: "Invoice saved!" });
-      setLocation(`/invoices/${invoice.id}`);
+      setLocation(`/invoices/${invoice.id}/edit`);
     } catch {
       toast({ title: "Failed to save invoice", variant: "destructive" });
     }
-  }, [selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, subtotal, lineItems, servicesDescription, paymentTerms, notes, template, createInvoice, setLocation, toast]);
+  }, [selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, createInvoice, setLocation, toast]);
 
   const logoUrl = company?.logoUrl ?? null;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide">
+      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide flex-wrap">
         <Link href="/invoices">
           <Button variant="ghost" size="sm" className="gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Invoices
@@ -172,7 +167,10 @@ export default function NewInvoicePage() {
         </Link>
         <h1 className="text-xl font-bold flex-1">New Invoice</h1>
         <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
-          <Printer className="h-4 w-4" /> Print / PDF
+          <Download className="h-4 w-4" /> Download PDF
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
+          <Printer className="h-4 w-4" /> Print
         </Button>
         <Button size="sm" onClick={handleSave} disabled={createInvoice.isPending} className="gap-1.5">
           {createInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -224,6 +222,7 @@ export default function NewInvoicePage() {
             {selectedClient && (
               <div className="text-sm text-muted-foreground rounded-md bg-muted px-3 py-2">
                 Client: <span className="font-medium text-foreground">{selectedClient.name}</span>
+                {selectedClient.address && <div className="text-xs mt-0.5">{selectedClient.address}</div>}
               </div>
             )}
 
@@ -233,25 +232,23 @@ export default function NewInvoicePage() {
                   <FileText className="h-4 w-4 text-primary" />
                   Import from estimate
                 </div>
-                <div className="flex gap-2">
-                  <Select
-                    value="none"
-                    onValueChange={(val) => { if (val !== "none") setImportEstimateId(parseInt(val)); }}
-                  >
-                    <SelectTrigger className="flex-1 h-8 text-sm">
-                      <SelectValue placeholder="Choose estimate…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Choose estimate…</SelectItem>
-                      {jobEstimates.map((e) => (
-                        <SelectItem key={e.id} value={String(e.id)}>
-                          {e.estimateNumber || `EST-${e.id}`} · {e.status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Selecting an estimate replaces the current line items.</p>
+                <Select
+                  value="none"
+                  onValueChange={(val) => { if (val !== "none") setImportEstimateId(parseInt(val)); }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Choose estimate…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Choose estimate…</SelectItem>
+                    {jobEstimates.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.estimateNumber || `EST-${e.id}`} · {e.status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Selecting replaces current line items.</p>
               </div>
             )}
           </div>
@@ -318,7 +315,29 @@ export default function NewInvoicePage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-end text-sm font-semibold pr-1">Total: {formatCurrency(subtotal)}</div>
+            <div className="space-y-2">
+              <Label className="text-sm">Tax Rate (%)</Label>
+              <Input
+                type="number" min="0" max="100" step="0.01"
+                value={taxRate}
+                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                className="bg-background h-8"
+              />
+            </div>
+            <div className="rounded-md bg-muted px-3 py-2 space-y-1 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span><span className="tabular-nums">{formatCurrency(subtotal)}</span>
+              </div>
+              {taxRate > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax ({taxRate}%)</span><span className="tabular-nums">{formatCurrency(taxAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold border-t border-border pt-1 mt-1">
+                <span>Total</span><span className="tabular-nums">{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -327,10 +346,7 @@ export default function NewInvoicePage() {
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-amber-500" /> AI Description
             </Label>
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Notes for AI (optional)</Label>
-              <Textarea value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} placeholder="Any special notes to guide the AI..." className="bg-background resize-none h-16 text-sm" />
-            </div>
+            <Textarea value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} placeholder="Notes for AI (optional)..." className="bg-background resize-none h-16 text-sm" />
             <Button variant="outline" size="sm" onClick={handleAiGenerate} disabled={aiDescription.isPending} className="w-full gap-2 border-amber-300 text-amber-700 hover:bg-amber-50">
               {aiDescription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Generate with AI
@@ -349,7 +365,7 @@ export default function NewInvoicePage() {
 
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes to include on the invoice..." className="bg-background resize-none h-20 text-sm" />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." className="bg-background resize-none h-20 text-sm" />
           </div>
         </aside>
 
@@ -372,6 +388,8 @@ export default function NewInvoicePage() {
               servicesDescription={servicesDescription}
               paymentTerms={paymentTerms}
               notes={notes}
+              taxRate={taxRate > 0 ? taxRate : undefined}
+              taxAmount={taxRate > 0 ? taxAmount : undefined}
               onEditInvoiceNumber={setInvoiceNumber}
             />
           </div>

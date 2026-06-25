@@ -1,10 +1,7 @@
 import { useCallback, useState } from "react";
 import { useRoute, Link } from "wouter";
 import {
-  useGetInvoice,
-  useUpdateInvoice,
-  useCreatePayment,
-  useGetCompany,
+  useGetInvoice, useUpdateInvoice, useCreatePayment, useGetCompany,
 } from "@workspace/api-client-react";
 import type { InvoiceDetail as InvoiceDetailType, Company, Payment } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,8 +18,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, Printer, Plus, CheckCircle, AlertCircle, Clock,
-  Loader2, Pencil, Send,
+  ArrowLeft, Printer, Plus, CheckCircle, Loader2, Pencil, Send, Download,
 } from "lucide-react";
 import { type LineItem, type Template, lineTotal } from "./invoice-types";
 import "./invoice-templates.css";
@@ -37,10 +33,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 function InvoiceDocView({
-  template,
-  invoice,
-  company,
-  lineItems,
+  template, invoice, company, lineItems,
 }: {
   template: Template;
   invoice: InvoiceDetailType;
@@ -49,38 +42,36 @@ function InvoiceDocView({
 }) {
   const logoUrl = company?.logoUrl ?? null;
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
-
-  const headerContent = (
-    <>
-      <div className="inv-company-block">
-        {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
-        <div className="inv-company-name">{company?.name ?? ""}</div>
-        {company?.address && <div className="inv-company-meta">{company.address}</div>}
-        {(company?.phone || company?.email) && (
-          <div className="inv-company-meta">
-            {company.phone}{company.phone && company.email ? " · " : ""}{company.email}
-          </div>
-        )}
-      </div>
-      <div className="inv-number-block">
-        <div className="inv-label">INVOICE</div>
-        <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
-        <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
-        <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
-      </div>
-    </>
-  );
+  const taxRate = invoice.taxRate ?? 0;
+  const taxAmount = invoice.taxAmount ?? 0;
+  const total = subtotal + taxAmount;
 
   return (
     <div className={`invoice-doc template-${template} print-only`} id="invoice-document">
       <div className={template === "bold" ? "inv-header-bold" : "inv-header-std"}>
-        {headerContent}
+        <div className="inv-company-block">
+          {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
+          <div className="inv-company-name">{company?.name ?? ""}</div>
+          {company?.address && <div className="inv-company-meta">{company.address}</div>}
+          {(company?.phone || company?.email) && (
+            <div className="inv-company-meta">
+              {company.phone}{company.phone && company.email ? " · " : ""}{company.email}
+            </div>
+          )}
+        </div>
+        <div className="inv-number-block">
+          <div className="inv-label">INVOICE</div>
+          <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
+          <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
+          <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
+        </div>
       </div>
 
       <div className="inv-bill-row">
         <div className="inv-bill-to">
           <div className="inv-section-label">BILL TO</div>
           <div className="inv-client-name">{invoice.clientName || "—"}</div>
+          {invoice.clientAddress && <div className="inv-client-addr">{invoice.clientAddress}</div>}
         </div>
         {invoice.jobTitle && (
           <div className="inv-project">
@@ -123,10 +114,27 @@ function InvoiceDocView({
           )}
         </tbody>
         <tfoot>
-          <tr>
-            <td colSpan={4} className="inv-tf-label">Total</td>
-            <td className="inv-tf-total">{formatCurrency(subtotal)}</td>
-          </tr>
+          {taxRate > 0 ? (
+            <>
+              <tr>
+                <td colSpan={4} className="inv-tf-label inv-tf-sub">Subtotal</td>
+                <td className="inv-tf-total inv-tf-sub">{formatCurrency(subtotal)}</td>
+              </tr>
+              <tr>
+                <td colSpan={4} className="inv-tf-label inv-tf-sub">Tax ({taxRate}%)</td>
+                <td className="inv-tf-total inv-tf-sub">{formatCurrency(taxAmount)}</td>
+              </tr>
+              <tr>
+                <td colSpan={4} className="inv-tf-label">Total</td>
+                <td className="inv-tf-total">{formatCurrency(total)}</td>
+              </tr>
+            </>
+          ) : (
+            <tr>
+              <td colSpan={4} className="inv-tf-label">Total</td>
+              <td className="inv-tf-total">{formatCurrency(subtotal)}</td>
+            </tr>
+          )}
         </tfoot>
       </table>
 
@@ -212,40 +220,30 @@ export default function InvoiceDetailPage() {
 
         <Link href={`/invoices/${id}/edit`}>
           <Button variant="outline" size="sm" className="gap-1.5">
-            <Pencil className="h-4 w-4" /> Edit Invoice
+            <Pencil className="h-4 w-4" /> Edit
           </Button>
         </Link>
 
         {invoice.status === "draft" && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleStatusChange("sent")}
-            disabled={updateInvoice.isPending}
-            className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
-          >
+          <Button variant="outline" size="sm" onClick={() => handleStatusChange("sent")} disabled={updateInvoice.isPending} className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50">
             {updateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Mark Sent
           </Button>
         )}
         {invoice.status !== "paid" && invoice.status !== "draft" && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleStatusChange("paid")}
-            disabled={updateInvoice.isPending}
-            className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
-          >
+          <Button variant="outline" size="sm" onClick={() => handleStatusChange("paid")} disabled={updateInvoice.isPending} className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50">
             {updateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
             Mark Paid
           </Button>
         )}
-
         <Button variant="outline" size="sm" onClick={() => setPaymentOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" /> Record Payment
         </Button>
         <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
-          <Printer className="h-4 w-4" /> Print / PDF
+          <Download className="h-4 w-4" /> Download PDF
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
+          <Printer className="h-4 w-4" /> Print
         </Button>
       </div>
 
@@ -255,8 +253,18 @@ export default function InvoiceDetailPage() {
             <div className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Summary</div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold tabular-nums">{formatCurrency(invoice.totalAmount)}</span>
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="tabular-nums">{formatCurrency(lineItems.reduce((s, i) => s + lineTotal(i), 0))}</span>
+              </div>
+              {(invoice.taxRate ?? 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tax ({invoice.taxRate}%)</span>
+                  <span className="tabular-nums">{formatCurrency(invoice.taxAmount ?? 0)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                <span>Total</span>
+                <span className="tabular-nums">{formatCurrency(invoice.totalAmount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Paid</span>
@@ -294,7 +302,7 @@ export default function InvoiceDetailPage() {
                 {payments.map((p) => (
                   <div key={p.id} className="text-sm rounded bg-green-50 px-2.5 py-1.5">
                     <div className="font-medium text-green-800">{formatCurrency(p.amount)}</div>
-                    <div className="text-[11px] text-green-600">{p.method} · {formatDate(p.date)}</div>
+                    <div className="text-[11px] text-green-600">{p.method} · {formatDate(p.date ?? "")}</div>
                   </div>
                 ))}
               </div>

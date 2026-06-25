@@ -29,4 +29,8 @@ export interface InvoiceInput {
   /** @nullable */
   paymentTerms?: string | null;
   template?: string;
+  /** @nullable */
+  taxRate?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
 }

@@ -1002,6 +1002,9 @@ export const ListInvoicesResponseItem = zod.object({
   "servicesDescription": zod.string().nullish(),
   "paymentTerms": zod.string().nullish(),
   "template": zod.string(),
+  "clientAddress": zod.string().nullish(),
+  "taxRate": zod.number().nullish(),
+  "taxAmount": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListInvoicesResponse = zod.array(ListInvoicesResponseItem)
@@ -1022,7 +1025,9 @@ export const CreateInvoiceBody = zod.object({
   "lineItemsJson": zod.string().nullish(),
   "servicesDescription": zod.string().nullish(),
   "paymentTerms": zod.string().nullish(),
-  "template": zod.string().optional()
+  "template": zod.string().optional(),
+  "taxRate": zod.number().nullish(),
+  "taxAmount": zod.number().nullish()
 })
 
 
@@ -1052,6 +1057,9 @@ export const GetInvoiceResponse = zod.object({
   "servicesDescription": zod.string().nullish(),
   "paymentTerms": zod.string().nullish(),
   "template": zod.string(),
+  "clientAddress": zod.string().nullish(),
+  "taxRate": zod.number().nullish(),
+  "taxAmount": zod.number().nullish(),
   "createdAt": zod.string()
 }).and(zod.object({
   "payments": zod.array(zod.object({
@@ -1085,7 +1093,9 @@ export const UpdateInvoiceBody = zod.object({
   "lineItemsJson": zod.string().nullish(),
   "servicesDescription": zod.string().nullish(),
   "paymentTerms": zod.string().nullish(),
-  "template": zod.string().optional()
+  "template": zod.string().optional(),
+  "taxRate": zod.number().nullish(),
+  "taxAmount": zod.number().nullish()
 })
 
 export const UpdateInvoiceResponse = zod.object({
@@ -1107,6 +1117,9 @@ export const UpdateInvoiceResponse = zod.object({
   "servicesDescription": zod.string().nullish(),
   "paymentTerms": zod.string().nullish(),
   "template": zod.string(),
+  "clientAddress": zod.string().nullish(),
+  "taxRate": zod.number().nullish(),
+  "taxAmount": zod.number().nullish(),
   "createdAt": zod.string()
 }).and(zod.object({
   "payments": zod.array(zod.object({

@@ -601,6 +601,12 @@ export interface Invoice {
   /** @nullable */
   paymentTerms?: string | null;
   template: string;
+  /** @nullable */
+  clientAddress?: string | null;
+  /** @nullable */
+  taxRate?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
   createdAt: string;
 }
 
@@ -643,6 +649,10 @@ export interface InvoiceInput {
   /** @nullable */
   paymentTerms?: string | null;
   template?: string;
+  /** @nullable */
+  taxRate?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
 }
 
 export interface InvoiceUpdate {
@@ -667,6 +677,10 @@ export interface InvoiceUpdate {
   /** @nullable */
   paymentTerms?: string | null;
   template?: string;
+  /** @nullable */
+  taxRate?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
 }
 
 export interface PaymentInput {

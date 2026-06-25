@@ -18,6 +18,8 @@ export function InvoiceDocument({
   servicesDescription,
   paymentTerms,
   notes,
+  taxRate,
+  taxAmount,
   onEditInvoiceNumber,
 }: {
   template: Template;
@@ -30,15 +32,19 @@ export function InvoiceDocument({
   companyEmail: string;
   logoUrl?: string | null;
   clientName: string;
-  clientAddress: string;
+  clientAddress?: string | null;
   jobTitle: string;
   lineItems: LineItem[];
   servicesDescription: string;
   paymentTerms: string;
   notes: string;
+  taxRate?: number;
+  taxAmount?: number;
   onEditInvoiceNumber?: (v: string) => void;
 }) {
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
+  const effectiveTax = taxAmount ?? ((taxRate ?? 0) / 100) * subtotal;
+  const total = subtotal + effectiveTax;
 
   const numEl = onEditInvoiceNumber ? (
     <span
@@ -53,30 +59,26 @@ export function InvoiceDocument({
     <span className="inv-num-text">{invoiceNumber}</span>
   );
 
-  const header = (cls: string) => (
-    <div className={cls}>
-      <div className="inv-company-block">
-        {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
-        <div className="inv-company-name">{companyName}</div>
-        {companyAddress && <div className="inv-company-meta">{companyAddress}</div>}
-        {(companyPhone || companyEmail) && (
-          <div className="inv-company-meta">
-            {companyPhone}{companyPhone && companyEmail ? " · " : ""}{companyEmail}
-          </div>
-        )}
-      </div>
-      <div className="inv-number-block">
-        <div className="inv-label">INVOICE</div>
-        <div className="inv-num">{numEl}</div>
-        <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoiceDate || "—"}</div>
-        <div className="inv-date-row"><span className="inv-date-label">Due:</span> {dueDate || "—"}</div>
-      </div>
-    </div>
-  );
-
   return (
     <div className={`invoice-doc template-${template} print-only`} id="invoice-document">
-      {header(template === "bold" ? "inv-header-bold" : "inv-header-std")}
+      <div className={template === "bold" ? "inv-header-bold" : "inv-header-std"}>
+        <div className="inv-company-block">
+          {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
+          <div className="inv-company-name">{companyName}</div>
+          {companyAddress && <div className="inv-company-meta">{companyAddress}</div>}
+          {(companyPhone || companyEmail) && (
+            <div className="inv-company-meta">
+              {companyPhone}{companyPhone && companyEmail ? " · " : ""}{companyEmail}
+            </div>
+          )}
+        </div>
+        <div className="inv-number-block">
+          <div className="inv-label">INVOICE</div>
+          <div className="inv-num">{numEl}</div>
+          <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoiceDate || "—"}</div>
+          <div className="inv-date-row"><span className="inv-date-label">Due:</span> {dueDate || "—"}</div>
+        </div>
+      </div>
 
       <div className="inv-bill-row">
         <div className="inv-bill-to">
@@ -125,10 +127,27 @@ export function InvoiceDocument({
           )}
         </tbody>
         <tfoot>
-          <tr>
-            <td colSpan={4} className="inv-tf-label">Total</td>
-            <td className="inv-tf-total">{formatCurrency(subtotal)}</td>
-          </tr>
+          {(taxRate ?? 0) > 0 ? (
+            <>
+              <tr>
+                <td colSpan={4} className="inv-tf-label inv-tf-sub">Subtotal</td>
+                <td className="inv-tf-total inv-tf-sub">{formatCurrency(subtotal)}</td>
+              </tr>
+              <tr>
+                <td colSpan={4} className="inv-tf-label inv-tf-sub">Tax ({taxRate}%)</td>
+                <td className="inv-tf-total inv-tf-sub">{formatCurrency(effectiveTax)}</td>
+              </tr>
+              <tr>
+                <td colSpan={4} className="inv-tf-label">Total</td>
+                <td className="inv-tf-total">{formatCurrency(total)}</td>
+              </tr>
+            </>
+          ) : (
+            <tr>
+              <td colSpan={4} className="inv-tf-label">Total</td>
+              <td className="inv-tf-total">{formatCurrency(subtotal)}</td>
+            </tr>
+          )}
         </tfoot>
       </table>
 
@@ -138,14 +157,12 @@ export function InvoiceDocument({
           <div className="inv-payment-text">{paymentTerms}</div>
         </div>
       )}
-
       {notes && (
         <div className="inv-notes">
           <div className="inv-section-label">NOTES</div>
           <div className="inv-notes-text">{notes}</div>
         </div>
       )}
-
       <div className="inv-footer">
         <div className="inv-footer-text">Thank you for your business!</div>
       </div>

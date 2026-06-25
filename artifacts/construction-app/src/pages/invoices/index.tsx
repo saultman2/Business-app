@@ -50,7 +50,7 @@ export default function InvoicesPage() {
           {invoices.map((invoice) => {
             const status = STATUS_MAP[invoice.status] ?? STATUS_MAP.unpaid;
             return (
-              <Link key={invoice.id} href={`/invoices/${invoice.id}`}>
+              <Link key={invoice.id} href={`/invoices/${invoice.id}/edit`}>
                 <Card className="hover:bg-muted/50 cursor-pointer transition-colors">
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4 min-w-0">

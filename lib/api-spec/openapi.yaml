@@ -2001,6 +2001,12 @@ components:
           type: [string, "null"]
         template:
           type: string
+        clientAddress:
+          type: [string, "null"]
+        taxRate:
+          type: [number, "null"]
+        taxAmount:
+          type: [number, "null"]
         createdAt:
           type: string
 
@@ -2042,6 +2048,10 @@ components:
           type: [string, "null"]
         template:
           type: string
+        taxRate:
+          type: [number, "null"]
+        taxAmount:
+          type: [number, "null"]
 
     InvoiceUpdate:
       type: object
@@ -2070,6 +2080,10 @@ components:
           type: [string, "null"]
         template:
           type: string
+        taxRate:
+          type: [number, "null"]
+        taxAmount:
+          type: [number, "null"]
 
     Payment:
       type: object

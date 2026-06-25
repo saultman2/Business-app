@@ -37,5 +37,11 @@ export interface Invoice {
   /** @nullable */
   paymentTerms?: string | null;
   template: string;
+  /** @nullable */
+  clientAddress?: string | null;
+  /** @nullable */
+  taxRate?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
   createdAt: string;
 }

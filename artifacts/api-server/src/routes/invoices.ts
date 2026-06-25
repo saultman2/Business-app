@@ -35,6 +35,7 @@ async function detail(companyId: number, id: number) {
     .select({
       inv: invoicesTable,
       clientName: clientsTable.name,
+      clientAddress: clientsTable.address,
       jobTitle: jobsTable.title,
     })
     .from(invoicesTable)
@@ -64,6 +65,7 @@ async function detail(companyId: number, id: number) {
   return {
     ...serializeInvoice(row.inv, {
       clientName: row.clientName,
+      clientAddress: row.clientAddress,
       jobTitle: row.jobTitle,
     }),
     payments: payments.map(serializePayment),
@@ -145,6 +147,8 @@ router.post("/invoices", async (req, res): Promise<void> => {
       servicesDescription: d.servicesDescription ?? null,
       paymentTerms: d.paymentTerms ?? null,
       template: d.template ?? "clean",
+      taxRate: d.taxRate != null ? String(d.taxRate) : null,
+      taxAmount: d.taxAmount != null ? String(d.taxAmount) : null,
     })
     .returning();
   res.status(201).json(serializeInvoice(invoice));
@@ -201,9 +205,16 @@ router.patch("/invoices/:id", async (req, res): Promise<void> => {
   const balanceDue = total - paid;
   let status = d.status ?? existing.status;
   if (d.status === undefined) {
-    if (paid <= 0) status = "unpaid";
-    else if (balanceDue <= 0) status = "paid";
-    else status = "partial";
+    const cur = existing.status;
+    if (cur === "draft" || cur === "sent") {
+      status = cur; // preserve lifecycle status; don't auto-flip to unpaid
+    } else if (balanceDue <= 0 && paid > 0) {
+      status = "paid";
+    } else if (paid > 0) {
+      status = "partial";
+    } else {
+      status = "unpaid";
+    }
   }
   await db
     .update(invoicesTable)
@@ -221,6 +232,8 @@ router.patch("/invoices/:id", async (req, res): Promise<void> => {
       ...(d.servicesDescription !== undefined && { servicesDescription: d.servicesDescription }),
       ...(d.paymentTerms !== undefined && { paymentTerms: d.paymentTerms }),
       ...(d.template !== undefined && { template: d.template }),
+      ...(d.taxRate !== undefined && { taxRate: d.taxRate != null ? String(d.taxRate) : null }),
+      ...(d.taxAmount !== undefined && { taxAmount: d.taxAmount != null ? String(d.taxAmount) : null }),
     })
     .where(eq(invoicesTable.id, params.data.id));
   res.json(await detail(req.companyId!, params.data.id));

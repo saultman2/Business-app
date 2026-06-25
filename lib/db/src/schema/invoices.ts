@@ -23,6 +23,8 @@ export const invoicesTable = pgTable("invoices", {
   servicesDescription: text("services_description"),
   paymentTerms: text("payment_terms"),
   template: text("template").notNull().default("clean"),
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }),
+  taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

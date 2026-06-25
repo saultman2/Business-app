@@ -98,15 +98,18 @@ export function serializeEstimateItem(i: EstimateItem) {
 
 export function serializeInvoice(
   inv: Invoice,
-  extra: { clientName?: string | null; jobTitle?: string | null } = {},
+  extra: { clientName?: string | null; jobTitle?: string | null; clientAddress?: string | null } = {},
 ) {
   return {
     ...inv,
     clientName: extra.clientName ?? null,
     jobTitle: extra.jobTitle ?? null,
+    clientAddress: extra.clientAddress ?? null,
     totalAmount: n(inv.totalAmount),
     amountPaid: n(inv.amountPaid),
     balanceDue: n(inv.balanceDue),
+    taxRate: inv.taxRate != null ? n(inv.taxRate) : null,
+    taxAmount: inv.taxAmount != null ? n(inv.taxAmount) : null,
     createdAt: inv.createdAt.toISOString(),
   };
 }
