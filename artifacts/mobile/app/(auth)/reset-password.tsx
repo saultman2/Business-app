@@ -29,6 +29,7 @@ export default function ResetPasswordScreen() {
 
   const handleSendCode = async () => {
     setFormError(null);
+    // @ts-expect-error Clerk v3.5.x types for sendCode omit the email param; runtime accepts it
     const { error } = await signIn.resetPasswordEmailCode.sendCode({ email });
     if (error) {
       setFormError("We couldn't find an account with that email.");
