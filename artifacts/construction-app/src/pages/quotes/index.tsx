@@ -716,17 +716,15 @@ export default function QuotesPage() {
                         <td className="px-4 py-3">{estimateStatusBadge(est.status)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {est.jobId && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                title="Edit estimate"
-                                onClick={() => (window.location.href = `/jobs/${est.jobId}/estimate`)}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              title="Edit estimate"
+                              onClick={() => (window.location.href = `/jobs/${est.jobId ?? 0}/estimate?estimateId=${est.id}`)}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"

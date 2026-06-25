@@ -162,7 +162,7 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
                         variant="ghost"
                         className="h-7 w-7"
                         title="Edit estimate"
-                        onClick={() => (window.location.href = `/jobs/${jobId}/estimate`)}
+                        onClick={() => (window.location.href = `/jobs/${jobId}/estimate?estimateId=${est.id}`)}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
