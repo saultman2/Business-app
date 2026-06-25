@@ -32,6 +32,6 @@ export function buildFullAddress(parts: {
 export function navigationUrl(address: string, provider: MapProvider): string {
   const q = encodeURIComponent(address);
   return provider === "apple"
-    ? `https://maps.apple.com/?daddr=${q}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${q}`;
+    ? `maps://?q=${q}`
+    : `https://maps.google.com/?q=${q}`;
 }

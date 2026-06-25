@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { useListJobs, useListClients } from "@workspace/api-client-react";
+import { useListJobs, useListClients, useListEvents } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,7 @@ import {
   Copy,
   Apple,
   Map as MapIcon,
+  CalendarClock,
 } from "lucide-react";
 import {
   buildFullAddress,
@@ -19,23 +20,9 @@ import {
   navigationUrl,
   type MapProvider,
 } from "@/lib/maps";
+import { formatDate } from "@/lib/format";
 
 const INACTIVE_STATUSES = new Set(["paid"]);
-
-const STATUS_PRIORITY: Record<string, number> = {
-  in_progress: 0,
-  approved: 1,
-  estimate_sent: 2,
-  estimate: 3,
-  material_list: 4,
-  new: 5,
-  finished: 6,
-  invoiced: 7,
-};
-
-function statusRank(status: string): number {
-  return STATUS_PRIORITY[status] ?? 99;
-}
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -51,6 +38,7 @@ export default function NavigatePage() {
 
   const { data: jobs, isLoading } = useListJobs({});
   const { data: clients } = useListClients({});
+  const { data: events } = useListEvents({});
 
   const clientById = useMemo(() => {
     const m = new Map<number, NonNullable<typeof clients>[number]>();
@@ -58,17 +46,36 @@ export default function NavigatePage() {
     return m;
   }, [clients]);
 
+  // Earliest upcoming appointment (calendar event) per job.
+  const nextApptByJob = useMemo(() => {
+    const now = Date.now();
+    const m = new Map<number, number>();
+    (events ?? []).forEach((e) => {
+      if (e.jobId == null) return;
+      const t = new Date(e.startDatetime).getTime();
+      if (Number.isNaN(t) || t < now) return;
+      const cur = m.get(e.jobId);
+      if (cur === undefined || t < cur) m.set(e.jobId, t);
+    });
+    return m;
+  }, [events]);
+
   const activeJobs = useMemo(() => {
     return (jobs ?? [])
       .filter((j) => !INACTIVE_STATUSES.has(j.status))
       .sort((a, b) => {
-        const r = statusRank(a.status) - statusRank(b.status);
-        if (r !== 0) return r;
+        const aAppt = nextApptByJob.get(a.id);
+        const bAppt = nextApptByJob.get(b.id);
+        // Jobs with an upcoming appointment first, soonest first.
+        if (aAppt !== undefined && bAppt !== undefined) return aAppt - bAppt;
+        if (aAppt !== undefined) return -1;
+        if (bAppt !== undefined) return 1;
+        // Fallback for jobs without a scheduled visit: most recent first.
         return (
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       });
-  }, [jobs]);
+  }, [jobs, nextApptByJob]);
 
   const copyAddress = async (address: string) => {
     try {
@@ -166,8 +173,14 @@ export default function NavigatePage() {
                     </Link>
                     <StatusBadge status={job.status} />
                   </div>
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {job.clientName || "No client assigned"}
+                  <div className="text-sm text-muted-foreground mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>{job.clientName || "No client assigned"}</span>
+                    {nextApptByJob.get(job.id) !== undefined && (
+                      <span className="inline-flex items-center gap-1 text-primary font-medium">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Next visit {formatDate(new Date(nextApptByJob.get(job.id)!).toISOString())}
+                      </span>
+                    )}
                   </div>
 
                   {fullAddress ? (
