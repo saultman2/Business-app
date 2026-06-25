@@ -261,6 +261,54 @@ tfoot .inv-tf-total {
 .template-bold .inv-section-label { color: #f97316; opacity: 1; }
 .template-bold .inv-services { background: #fff7ed; border-left: 4px solid #f97316; margin: 0 48px 24px; padding: 16px; border-radius: 0; }
 
+/* ───────────────────────────────────────────
+   AI DESIGN OVERRIDES (applied via inline CSS vars + data attrs)
+─────────────────────────────────────────── */
+
+/* Accent color override — wins over per-template colors. */
+.invoice-doc[data-accent="true"] { border-top-color: var(--inv-accent); }
+.invoice-doc[data-accent="true"] .inv-company-name { color: var(--inv-accent); }
+.invoice-doc[data-accent="true"] .inv-tf-total { color: var(--inv-accent); border-color: var(--inv-accent); }
+.invoice-doc[data-accent="true"] .inv-th { border-color: var(--inv-accent); color: var(--inv-accent); opacity: 1; }
+.invoice-doc[data-accent="true"] .inv-section-label,
+.invoice-doc[data-accent="true"] .inv-label { color: var(--inv-accent); opacity: 1; }
+.invoice-doc[data-accent="true"] .inv-services { background: color-mix(in srgb, var(--inv-accent) 10%, white); }
+
+/* Header band override. */
+.invoice-doc[data-header-bg="true"] .inv-header-std,
+.invoice-doc[data-header-bg="true"] .inv-header-bold {
+  background: var(--inv-header-bg);
+  color: var(--inv-header-fg, #1e293b);
+  padding: 28px 32px;
+  margin: -48px -48px 32px;
+  border-radius: 8px 8px 0 0;
+}
+.invoice-doc.template-bold[data-header-bg="true"] .inv-header-bold { margin: 0 0 0; }
+.invoice-doc[data-header-bg="true"] .inv-company-name,
+.invoice-doc[data-header-bg="true"] .inv-num-text { color: var(--inv-header-fg, #1e293b); }
+.invoice-doc[data-header-bg="true"] .inv-company-meta,
+.invoice-doc[data-header-bg="true"] .inv-date-row,
+.invoice-doc[data-header-bg="true"] .inv-label,
+.invoice-doc[data-header-bg="true"] .inv-date-label { color: var(--inv-header-fg, #1e293b); opacity: 0.75; }
+/* When both accent + header band are set, keep the accent on the company name. */
+.invoice-doc[data-header-bg="true"][data-accent="true"] .inv-company-name { color: var(--inv-accent); }
+
+/* Logo / header alignment. */
+.invoice-doc[data-logo="center"] .inv-header-std,
+.invoice-doc[data-logo="center"] .inv-header-bold {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.invoice-doc[data-logo="center"] .inv-number-block { text-align: center; }
+.invoice-doc[data-logo="right"] .inv-header-std,
+.invoice-doc[data-logo="right"] .inv-header-bold { flex-direction: row-reverse; }
+.invoice-doc[data-logo="right"] .inv-company-block { text-align: right; }
+.invoice-doc[data-logo="right"] .inv-number-block { text-align: left; }
+
+/* Overall scale. */
+.invoice-doc[data-scaled="true"] { zoom: var(--inv-font-scale, 1); }
+
 /* ─── Print styles ─── */
 @media print {
   .print-hide { display: none !important; }

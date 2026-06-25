@@ -989,6 +989,42 @@ export interface AiInvoiceDescriptionResult {
   paymentTerms: string;
 }
 
+export type InvoiceStyleLogoPosition = typeof InvoiceStyleLogoPosition[keyof typeof InvoiceStyleLogoPosition];
+
+
+export const InvoiceStyleLogoPosition = {
+  left: 'left',
+  center: 'center',
+  right: 'right',
+} as const;
+
+export interface InvoiceStyle {
+  /** Hex color for accents (company name, totals, table headers). Empty string keeps the template default. */
+  accentColor: string;
+  /** Hex background color for the header band. Empty string means no band. */
+  headerBg: string;
+  logoPosition: InvoiceStyleLogoPosition;
+  /** Overall document scale, 0.85–1.3 (1 = default). */
+  fontScale: number;
+  showPaymentTerms: boolean;
+  paymentTermsText: string;
+  showNotes: boolean;
+  notesText: string;
+  footerText: string;
+}
+
+export interface AiInvoiceDesignInput {
+  /** The user's natural-language design request. */
+  message: string;
+  current: InvoiceStyle;
+}
+
+export interface AiInvoiceDesignResult {
+  /** A short conversational reply describing what changed. */
+  reply: string;
+  style: InvoiceStyle;
+}
+
 export type ListClientsParams = {
 search?: string;
 };

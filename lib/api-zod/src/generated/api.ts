@@ -1498,6 +1498,40 @@ export const AiInvoiceDescriptionResponse = zod.object({
 
 
 /**
+ * @summary Conversationally update an invoice's visual design from a chat message
+ */
+export const AiInvoiceDesignBody = zod.object({
+  "message": zod.string().describe('The user\'s natural-language design request.'),
+  "current": zod.object({
+  "accentColor": zod.string().describe('Hex color for accents (company name, totals, table headers). Empty string keeps the template default.'),
+  "headerBg": zod.string().describe('Hex background color for the header band. Empty string means no band.'),
+  "logoPosition": zod.enum(['left', 'center', 'right']),
+  "fontScale": zod.number().describe('Overall document scale, 0.85–1.3 (1 = default).'),
+  "showPaymentTerms": zod.boolean(),
+  "paymentTermsText": zod.string(),
+  "showNotes": zod.boolean(),
+  "notesText": zod.string(),
+  "footerText": zod.string()
+})
+})
+
+export const AiInvoiceDesignResponse = zod.object({
+  "reply": zod.string().describe('A short conversational reply describing what changed.'),
+  "style": zod.object({
+  "accentColor": zod.string().describe('Hex color for accents (company name, totals, table headers). Empty string keeps the template default.'),
+  "headerBg": zod.string().describe('Hex background color for the header band. Empty string means no band.'),
+  "logoPosition": zod.enum(['left', 'center', 'right']),
+  "fontScale": zod.number().describe('Overall document scale, 0.85–1.3 (1 = default).'),
+  "showPaymentTerms": zod.boolean(),
+  "paymentTermsText": zod.string(),
+  "showNotes": zod.boolean(),
+  "notesText": zod.string(),
+  "footerText": zod.string()
+})
+})
+
+
+/**
  * @summary Request a presigned URL for file upload
  */
 export const RequestUploadUrlBody = zod.object({

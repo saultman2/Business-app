@@ -9,6 +9,8 @@
 export * from './aiInvoiceDescriptionInput';
 export * from './aiInvoiceDescriptionInputLineItemsItem';
 export * from './aiInvoiceDescriptionResult';
+export * from './aiInvoiceDesignInput';
+export * from './aiInvoiceDesignResult';
 export * from './aiLineItem';
 export * from './aiLineItemSection';
 export * from './aiMaterialItem';
@@ -46,6 +48,8 @@ export * from './healthStatus';
 export * from './invoice';
 export * from './invoiceDetail';
 export * from './invoiceInput';
+export * from './invoiceStyle';
+export * from './invoiceStyleLogoPosition';
 export * from './invoiceUpdate';
 export * from './job';
 export * from './jobInput';

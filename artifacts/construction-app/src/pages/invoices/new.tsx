@@ -27,12 +27,18 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { Link } from "wouter";
+import type { InvoiceStyle } from "@workspace/api-client-react";
 import { InvoiceDocument } from "./invoice-document";
+import { InvoiceAIChat } from "./invoice-ai-chat";
 import {
   type Template,
   type LineItem,
+  type StyleOverrides,
   lineTotal,
   newLineItem,
+  defaultStyleOverrides,
+  clampFontScale,
+  serializeLineItems,
 } from "./invoice-types";
 import { TemplatePicker } from "./template-picker";
 import "./invoice-templates.css";
@@ -65,6 +71,34 @@ export default function NewInvoicePage() {
   const [notes, setNotes] = useState("");
   const [aiNotes, setAiNotes] = useState("");
   const [importEstimateId, setImportEstimateId] = useState<number | null>(null);
+  const [styleOverrides, setStyleOverrides] = useState<StyleOverrides>(defaultStyleOverrides());
+  const [autoImportedJobId, setAutoImportedJobId] = useState<number | null>(null);
+
+  const buildCurrentStyle = useCallback((): InvoiceStyle => ({
+    accentColor: styleOverrides.accentColor,
+    headerBg: styleOverrides.headerBg,
+    logoPosition: styleOverrides.logoPosition,
+    fontScale: styleOverrides.fontScale,
+    showPaymentTerms: styleOverrides.showPaymentTerms,
+    paymentTermsText: paymentTerms,
+    showNotes: styleOverrides.showNotes,
+    notesText: notes,
+    footerText: styleOverrides.footerText,
+  }), [styleOverrides, paymentTerms, notes]);
+
+  const applyStyle = useCallback((style: InvoiceStyle) => {
+    setStyleOverrides({
+      accentColor: style.accentColor,
+      headerBg: style.headerBg,
+      logoPosition: style.logoPosition,
+      fontScale: clampFontScale(style.fontScale),
+      showPaymentTerms: style.showPaymentTerms,
+      showNotes: style.showNotes,
+      footerText: style.footerText,
+    });
+    setPaymentTerms(style.paymentTermsText);
+    setNotes(style.notesText);
+  }, []);
 
   const jobIdNum = selectedJobId !== "none" ? parseInt(selectedJobId) : undefined;
   const selectedJob = jobs?.find((j) => j.id === jobIdNum);
@@ -94,6 +128,19 @@ export default function NewInvoicePage() {
     }
     setImportEstimateId(null);
   }, [importedEstimate, toast]);
+
+  // Auto-populate line items from the job's approved estimate when a job is
+  // first selected and no items have been entered yet.
+  useEffect(() => {
+    if (!jobIdNum || autoImportedJobId === jobIdNum) return;
+    const lineItemsEmpty = lineItems.every((i) => !i.description.trim() && i.unitPrice === 0);
+    if (!lineItemsEmpty) return;
+    const approved = jobEstimates?.find((e) => e.status === "approved");
+    if (approved) {
+      setImportEstimateId(approved.id);
+      setAutoImportedJobId(jobIdNum);
+    }
+  }, [jobIdNum, jobEstimates, lineItems, autoImportedJobId]);
 
   const addLineItem = () => setLineItems((prev) => [...prev, newLineItem()]);
   const removeLineItem = (id: string) => setLineItems((prev) => prev.filter((i) => i.id !== id));
@@ -141,7 +188,7 @@ export default function NewInvoicePage() {
           totalAmount,
           taxRate: taxRate > 0 ? taxRate : undefined,
           taxAmount: taxRate > 0 ? taxAmount : undefined,
-          lineItemsJson: JSON.stringify(lineItems),
+          lineItemsJson: serializeLineItems(lineItems, styleOverrides),
           servicesDescription: servicesDescription || undefined,
           paymentTerms: paymentTerms || undefined,
           notes: notes || undefined,
@@ -153,7 +200,7 @@ export default function NewInvoicePage() {
     } catch {
       toast({ title: "Failed to save invoice", variant: "destructive" });
     }
-  }, [selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, createInvoice, setLocation, toast]);
+  }, [selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, styleOverrides, createInvoice, setLocation, toast]);
 
   const logoUrl = company?.logoUrl ?? null;
 
@@ -180,6 +227,10 @@ export default function NewInvoicePage() {
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-96 border-r bg-muted/20 overflow-y-auto p-5 space-y-6 print-hide">
+          <InvoiceAIChat current={buildCurrentStyle} onApply={applyStyle} />
+
+          <Separator />
+
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Template</Label>
             <TemplatePicker value={template} onChange={setTemplate} />
@@ -390,6 +441,7 @@ export default function NewInvoicePage() {
               notes={notes}
               taxRate={taxRate > 0 ? taxRate : undefined}
               taxAmount={taxRate > 0 ? taxAmount : undefined}
+              style={styleOverrides}
               onEditInvoiceNumber={setInvoiceNumber}
             />
           </div>

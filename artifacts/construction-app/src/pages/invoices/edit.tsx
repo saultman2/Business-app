@@ -25,9 +25,13 @@ import {
   Printer, Sparkles, Plus, Trash2, Save, ArrowLeft, Loader2, FileText, Download, Send, CheckCircle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import type { InvoiceStyle } from "@workspace/api-client-react";
 import { InvoiceDocument } from "./invoice-document";
+import { InvoiceAIChat } from "./invoice-ai-chat";
 import {
-  type Template, type LineItem, lineTotal, newLineItem,
+  type Template, type LineItem, type StyleOverrides,
+  lineTotal, newLineItem, defaultStyleOverrides, clampFontScale,
+  serializeLineItems, parseLineItems,
 } from "./invoice-types";
 import { TemplatePicker } from "./template-picker";
 import "./invoice-templates.css";
@@ -68,6 +72,33 @@ export default function EditInvoicePage() {
   const [notes, setNotes] = useState("");
   const [aiNotes, setAiNotes] = useState("");
   const [importEstimateId, setImportEstimateId] = useState<number | null>(null);
+  const [styleOverrides, setStyleOverrides] = useState<StyleOverrides>(defaultStyleOverrides());
+
+  const buildCurrentStyle = useCallback((): InvoiceStyle => ({
+    accentColor: styleOverrides.accentColor,
+    headerBg: styleOverrides.headerBg,
+    logoPosition: styleOverrides.logoPosition,
+    fontScale: styleOverrides.fontScale,
+    showPaymentTerms: styleOverrides.showPaymentTerms,
+    paymentTermsText: paymentTerms,
+    showNotes: styleOverrides.showNotes,
+    notesText: notes,
+    footerText: styleOverrides.footerText,
+  }), [styleOverrides, paymentTerms, notes]);
+
+  const applyStyle = useCallback((style: InvoiceStyle) => {
+    setStyleOverrides({
+      accentColor: style.accentColor,
+      headerBg: style.headerBg,
+      logoPosition: style.logoPosition,
+      fontScale: clampFontScale(style.fontScale),
+      showPaymentTerms: style.showPaymentTerms,
+      showNotes: style.showNotes,
+      footerText: style.footerText,
+    });
+    setPaymentTerms(style.paymentTermsText);
+    setNotes(style.notesText);
+  }, []);
 
   useEffect(() => {
     if (!invoice || initialized) return;
@@ -81,9 +112,9 @@ export default function EditInvoicePage() {
     setPaymentTerms(invoice.paymentTerms ?? "");
     setNotes(invoice.notes ?? "");
     setTaxRate(invoice.taxRate ?? 0);
-    if (invoice.lineItemsJson) {
-      try { setLineItems(JSON.parse(invoice.lineItemsJson) as LineItem[]); } catch { /* keep default */ }
-    }
+    const { items, style } = parseLineItems(invoice.lineItemsJson);
+    if (items.length > 0) setLineItems(items);
+    setStyleOverrides(style);
     setInitialized(true);
   }, [invoice, initialized]);
 
@@ -163,7 +194,7 @@ export default function EditInvoicePage() {
           totalAmount,
           taxRate: taxRate > 0 ? taxRate : null,
           taxAmount: taxRate > 0 ? taxAmount : null,
-          lineItemsJson: JSON.stringify(lineItems),
+          lineItemsJson: serializeLineItems(lineItems, styleOverrides),
           servicesDescription: servicesDescription || undefined,
           paymentTerms: paymentTerms || undefined,
           notes: notes || undefined,
@@ -174,7 +205,7 @@ export default function EditInvoicePage() {
     } catch {
       toast({ title: "Failed to update invoice", variant: "destructive" });
     }
-  }, [id, selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, updateInvoice, toast]);
+  }, [id, selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, totalAmount, taxRate, taxAmount, lineItems, servicesDescription, paymentTerms, notes, template, styleOverrides, updateInvoice, toast]);
 
   const handleStatusChange = useCallback(async (newStatus: string) => {
     if (!invoice) return;
@@ -231,6 +262,10 @@ export default function EditInvoicePage() {
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-96 border-r bg-muted/20 overflow-y-auto p-5 space-y-6 print-hide">
+          <InvoiceAIChat current={buildCurrentStyle} onApply={applyStyle} />
+
+          <Separator />
+
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Template</Label>
             <TemplatePicker value={template} onChange={setTemplate} />
@@ -447,6 +482,7 @@ export default function EditInvoicePage() {
               notes={notes}
               taxRate={taxRate > 0 ? taxRate : undefined}
               taxAmount={taxRate > 0 ? taxAmount : undefined}
+              style={styleOverrides}
               onEditInvoiceNumber={setInvoiceNumber}
             />
           </div>

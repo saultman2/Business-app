@@ -1,5 +1,24 @@
+import type { CSSProperties } from "react";
 import { formatCurrency } from "@/lib/format";
-import { type LineItem, type Template, lineTotal } from "./invoice-types";
+import {
+  type LineItem,
+  type Template,
+  type StyleOverrides,
+  lineTotal,
+  defaultStyleOverrides,
+} from "./invoice-types";
+
+/** Relative luminance check so header text stays readable on any band color. */
+function headerForeground(hex: string): string | undefined {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return undefined;
+  const int = parseInt(m[1], 16);
+  const r = (int >> 16) & 0xff;
+  const g = (int >> 8) & 0xff;
+  const b = int & 0xff;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.55 ? "#ffffff" : "#1e293b";
+}
 
 export function InvoiceDocument({
   template,
@@ -20,6 +39,7 @@ export function InvoiceDocument({
   notes,
   taxRate,
   taxAmount,
+  style,
   onEditInvoiceNumber,
 }: {
   template: Template;
@@ -40,11 +60,33 @@ export function InvoiceDocument({
   notes: string;
   taxRate?: number;
   taxAmount?: number;
+  style?: StyleOverrides;
   onEditInvoiceNumber?: (v: string) => void;
 }) {
-  const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
+  const s = style ?? defaultStyleOverrides();
+  const subtotal = lineItems.reduce((acc, i) => acc + lineTotal(i), 0);
   const effectiveTax = taxAmount ?? ((taxRate ?? 0) / 100) * subtotal;
   const total = subtotal + effectiveTax;
+
+  const headerFg = s.headerBg ? headerForeground(s.headerBg) : undefined;
+
+  const docStyle: CSSProperties = {};
+  if (s.accentColor) (docStyle as Record<string, string>)["--inv-accent"] = s.accentColor;
+  if (s.headerBg) {
+    (docStyle as Record<string, string>)["--inv-header-bg"] = s.headerBg;
+    if (headerFg) (docStyle as Record<string, string>)["--inv-header-fg"] = headerFg;
+  }
+  if (s.fontScale && s.fontScale !== 1) {
+    (docStyle as Record<string, string | number>)["--inv-font-scale"] = s.fontScale;
+  }
+
+  const hasAccent = Boolean(s.accentColor);
+  const hasHeaderBg = Boolean(s.headerBg);
+  const scaled = s.fontScale !== 1;
+
+  const showPaymentTerms = s.showPaymentTerms && Boolean(paymentTerms);
+  const showNotes = s.showNotes && Boolean(notes);
+  const footerText = s.footerText.trim();
 
   const numEl = onEditInvoiceNumber ? (
     <span
@@ -60,7 +102,15 @@ export function InvoiceDocument({
   );
 
   return (
-    <div className={`invoice-doc template-${template} print-only`} id="invoice-document">
+    <div
+      className={`invoice-doc template-${template} print-only`}
+      id="invoice-document"
+      style={docStyle}
+      data-accent={hasAccent ? "true" : undefined}
+      data-header-bg={hasHeaderBg ? "true" : undefined}
+      data-scaled={scaled ? "true" : undefined}
+      data-logo={s.logoPosition}
+    >
       <div className={template === "bold" ? "inv-header-bold" : "inv-header-std"}>
         <div className="inv-company-block">
           {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
@@ -151,21 +201,23 @@ export function InvoiceDocument({
         </tfoot>
       </table>
 
-      {paymentTerms && (
+      {showPaymentTerms && (
         <div className="inv-payment-terms">
           <div className="inv-section-label">PAYMENT TERMS</div>
           <div className="inv-payment-text">{paymentTerms}</div>
         </div>
       )}
-      {notes && (
+      {showNotes && (
         <div className="inv-notes">
           <div className="inv-section-label">NOTES</div>
           <div className="inv-notes-text">{notes}</div>
         </div>
       )}
-      <div className="inv-footer">
-        <div className="inv-footer-text">Thank you for your business!</div>
-      </div>
+      {footerText && (
+        <div className="inv-footer">
+          <div className="inv-footer-text">{footerText}</div>
+        </div>
+      )}
     </div>
   );
 }

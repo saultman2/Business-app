@@ -290,4 +290,82 @@ Respond ONLY with valid JSON: { "servicesDescription": string, "paymentTerms": s
   res.json(result);
 });
 
+const invoiceStyleSchema = z.object({
+  accentColor: z.string(),
+  headerBg: z.string(),
+  logoPosition: z.enum(["left", "center", "right"]),
+  fontScale: z.number(),
+  showPaymentTerms: z.boolean(),
+  paymentTermsText: z.string(),
+  showNotes: z.boolean(),
+  notesText: z.string(),
+  footerText: z.string(),
+});
+
+const InvoiceDesignBody = z.object({
+  message: z.string().min(1),
+  current: invoiceStyleSchema,
+});
+
+router.post("/ai/invoice-design", async (req, res): Promise<void> => {
+  const parsed = InvoiceDesignBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { message, current } = parsed.data;
+
+  const openai = getOpenai();
+  if (!openai) {
+    res.status(503).json({ error: "AI service is not configured in this environment." });
+    return;
+  }
+
+  const systemPrompt = `You are an invoice design assistant for a construction company. You help the user restyle and edit a single invoice by chatting in plain language.
+
+You are given the invoice's CURRENT style as JSON. The user sends a request (e.g. "make it blue", "center the logo", "add a thank-you note", "bigger text", "hide payment terms"). Return the COMPLETE updated style object reflecting their request, keeping all other fields unchanged from the current values.
+
+Rules:
+- accentColor and headerBg must be valid 6-digit hex strings like "#2563eb", or "" (empty) to clear/use the default. Never invent other formats.
+- logoPosition must be one of: "left", "center", "right".
+- fontScale is a number between 0.85 and 1.3 (1 = default). "bigger" ~1.15, "smaller" ~0.9.
+- showPaymentTerms / showNotes are booleans controlling whether those sections appear.
+- paymentTermsText / notesText / footerText are plain text. Only rewrite them if the user asks for content changes; otherwise keep the current values. If the user asks to add a note or terms, write professional, concise copy and set the matching show flag to true.
+- Do NOT touch line items, prices, totals, client, or company details — only visual style and the payment-terms/notes/footer copy.
+
+Respond ONLY with valid JSON of this exact shape:
+{ "reply": string, "style": { "accentColor": string, "headerBg": string, "logoPosition": "left"|"center"|"right", "fontScale": number, "showPaymentTerms": boolean, "paymentTermsText": string, "showNotes": boolean, "notesText": string, "footerText": string } }
+"reply" is a short, friendly one-sentence confirmation of what you changed.`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-5.4",
+    max_completion_tokens: 1024,
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Current style:\n${JSON.stringify(current, null, 2)}\n\nUser request: ${message}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const designResultSchema = z.object({
+    reply: z.string(),
+    style: invoiceStyleSchema,
+  });
+
+  let result: z.infer<typeof designResultSchema>;
+  try {
+    result = designResultSchema.parse(JSON.parse(raw));
+  } catch {
+    res.status(500).json({ error: "AI returned invalid response format" });
+    return;
+  }
+
+  res.json(result);
+});
+
 export default router;

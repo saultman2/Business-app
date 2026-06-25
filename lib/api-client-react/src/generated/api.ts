@@ -22,6 +22,8 @@ import type {
 import type {
   AiInvoiceDescriptionInput,
   AiInvoiceDescriptionResult,
+  AiInvoiceDesignInput,
+  AiInvoiceDesignResult,
   AiQuoteEstimateInput,
   AiQuoteEstimateResult,
   AiSuggestMaterialsInput,
@@ -4157,6 +4159,77 @@ export const useAiInvoiceDescription = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAiInvoiceDescriptionMutationOptions(options));
+    }
+
+export const getAiInvoiceDesignUrl = () => {
+
+
+
+
+  return `/api/ai/invoice-design`
+}
+
+/**
+ * @summary Conversationally update an invoice's visual design from a chat message
+ */
+export const aiInvoiceDesign = async (aiInvoiceDesignInput: AiInvoiceDesignInput, options?: RequestInit): Promise<AiInvoiceDesignResult> => {
+
+  return customFetch<AiInvoiceDesignResult>(getAiInvoiceDesignUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiInvoiceDesignInput,)
+  }
+);}
+
+
+
+
+export const getAiInvoiceDesignMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDesign>>, TError,{data: BodyType<AiInvoiceDesignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDesign>>, TError,{data: BodyType<AiInvoiceDesignInput>}, TContext> => {
+
+const mutationKey = ['aiInvoiceDesign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiInvoiceDesign>>, {data: BodyType<AiInvoiceDesignInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiInvoiceDesign(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiInvoiceDesignMutationResult = NonNullable<Awaited<ReturnType<typeof aiInvoiceDesign>>>
+    export type AiInvoiceDesignMutationBody = BodyType<AiInvoiceDesignInput>
+    export type AiInvoiceDesignMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Conversationally update an invoice's visual design from a chat message
+ */
+export const useAiInvoiceDesign = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDesign>>, TError,{data: BodyType<AiInvoiceDesignInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiInvoiceDesign>>,
+        TError,
+        {data: BodyType<AiInvoiceDesignInput>},
+        TContext
+      > => {
+      return useMutation(getAiInvoiceDesignMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {
