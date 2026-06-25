@@ -48,6 +48,7 @@ export const GetDashboardSummaryResponse = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 })),
   "upcomingEvents": zod.array(zod.object({
@@ -277,6 +278,7 @@ export const GetClientHistoryResponse = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 }))
 })
@@ -309,6 +311,7 @@ export const ListJobsResponseItem = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 })
 export const ListJobsResponse = zod.array(ListJobsResponseItem)
@@ -337,6 +340,23 @@ export const CreateJobBody = zod.object({
 
 
 /**
+ * @summary Per-job financial snapshot
+ */
+export const GetJobsFinanceSummaryResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string().nullish(),
+  "status": zod.string(),
+  "billingStatus": zod.string(),
+  "materialsTotal": zod.number(),
+  "laborTotal": zod.number(),
+  "expectedPay": zod.number()
+})
+export const GetJobsFinanceSummaryResponse = zod.array(GetJobsFinanceSummaryResponseItem)
+
+
+/**
  * @summary Get a job by ID
  */
 export const GetJobParams = zod.object({
@@ -361,6 +381,7 @@ export const GetJobResponse = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 })
 
@@ -387,7 +408,8 @@ export const UpdateJobBody = zod.object({
   "endDate": zod.string().nullish(),
   "estimatedValue": zod.union([zod.number(),zod.string()]).nullish(),
   "actualCost": zod.union([zod.number(),zod.string()]).nullish(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional()
 })
 
 export const UpdateJobResponse = zod.object({
@@ -408,6 +430,7 @@ export const UpdateJobResponse = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 })
 
@@ -446,6 +469,7 @@ export const GetJobSummaryResponse = zod.object({
   "estimatedValue": zod.number().nullish(),
   "actualCost": zod.number().nullish(),
   "notes": zod.string().nullish(),
+  "billingStatus": zod.string().optional(),
   "createdAt": zod.string()
 }),
   "photoCount": zod.number(),

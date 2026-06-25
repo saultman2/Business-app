@@ -17,7 +17,6 @@ import {
 import { formatCurrency } from "@/lib/format";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell,
-  PieChart, Pie,
 } from "recharts";
 
 const CATEGORIES = [
@@ -28,13 +27,6 @@ const CATEGORIES = [
   { href: "/crew", label: "Crew", desc: "Team & assignments", icon: UsersRound, tint: "bg-teal-500/10 text-teal-600" },
   { href: "/finances", label: "Finances", desc: "Estimates, invoices & pay", icon: Wallet, tint: "bg-emerald-500/10 text-emerald-600" },
   { href: "/ai-tools", label: "AI Tools", desc: "Smart contractor tools", icon: Sparkles, tint: "bg-fuchsia-500/10 text-fuchsia-600" },
-];
-
-const STAGE_BUCKETS: { label: string; statuses: string[]; color: string }[] = [
-  { label: "Leads", statuses: ["new"], color: "hsl(var(--chart-2))" },
-  { label: "Quoting", statuses: ["material_list", "estimate", "estimate_sent"], color: "hsl(var(--chart-1))" },
-  { label: "Active", statuses: ["approved", "in_progress"], color: "hsl(var(--chart-4))" },
-  { label: "Done", statuses: ["finished", "invoiced", "paid"], color: "hsl(var(--chart-3))" },
 ];
 
 function greeting() {
@@ -113,14 +105,6 @@ export default function Dashboard() {
   }, [invoices]);
 
   const hasRevenue = revenueData.some((m) => m.revenue > 0);
-
-  const stageData = useMemo(() => {
-    return STAGE_BUCKETS.map((b) => ({
-      name: b.label,
-      value: (jobs ?? []).filter((j) => b.statuses.includes(j.status)).length,
-      color: b.color,
-    })).filter((s) => s.value > 0);
-  }, [jobs]);
 
   const activity = useMemo(() => {
     type Item = { id: string; date: string; icon: "estimate" | "invoice" | "job"; text: string; href: string };
@@ -269,46 +253,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stage breakdown + activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Job stages */}
+      {/* Recent activity — full width */}
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-card border border-card-border rounded-xl p-5">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <HardHat className="w-4 h-4 text-primary" /> Pipeline by Stage
-          </h2>
-          {stageData.length === 0 ? (
-            <div className="text-center py-12 text-sm text-muted-foreground">
-              <HardHat className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              No jobs yet.
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width="50%" height={140}>
-                <PieChart>
-                  <Pie data={stageData} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62} paddingAngle={2}>
-                    {stageData.map((s, i) => <Cell key={i} fill={s.color} />)}
-                  </Pie>
-                  <Tooltip
-                    formatter={(v: number, n: string) => [v, n]}
-                    contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", fontSize: 12 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex-1 space-y-2">
-                {stageData.map((s) => (
-                  <div key={s.name} className="flex items-center gap-2 text-sm">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-                    <span className="text-muted-foreground flex-1">{s.name}</span>
-                    <span className="font-semibold tabular-nums">{s.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Recent activity */}
-        <div className="bg-card border border-card-border rounded-xl p-5 lg:col-span-2">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Recent Activity
           </h2>

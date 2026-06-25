@@ -62,6 +62,7 @@ import type {
   InvoiceInput,
   InvoiceUpdate,
   Job,
+  JobFinanceSummary,
   JobInput,
   JobPhoto,
   JobPhotoInput,
@@ -1150,6 +1151,83 @@ export const useCreateJob = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateJobMutationOptions(options));
     }
+
+export const getGetJobsFinanceSummaryUrl = () => {
+
+
+
+
+  return `/api/jobs/finance-summary`
+}
+
+/**
+ * @summary Per-job financial snapshot
+ */
+export const getJobsFinanceSummary = async ( options?: RequestInit): Promise<JobFinanceSummary[]> => {
+
+  return customFetch<JobFinanceSummary[]>(getGetJobsFinanceSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobsFinanceSummaryQueryKey = () => {
+    return [
+    `/api/jobs/finance-summary`
+    ] as const;
+    }
+
+
+export const getGetJobsFinanceSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getJobsFinanceSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJobsFinanceSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobsFinanceSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobsFinanceSummary>>> = ({ signal }) => getJobsFinanceSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobsFinanceSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetJobsFinanceSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getJobsFinanceSummary>>>
+export type GetJobsFinanceSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-job financial snapshot
+ */
+
+export function useGetJobsFinanceSummary<TData = Awaited<ReturnType<typeof getJobsFinanceSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJobsFinanceSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetJobsFinanceSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetJobUrl = (id: number,) => {
 

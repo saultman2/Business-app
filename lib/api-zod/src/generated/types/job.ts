@@ -37,5 +37,6 @@ export interface Job {
   actualCost?: number | null;
   /** @nullable */
   notes?: string | null;
+  billingStatus?: string;
   createdAt: string;
 }

@@ -34,4 +34,5 @@ export interface JobUpdate {
   actualCost?: number | string | null;
   /** @nullable */
   notes?: string | null;
+  billingStatus?: string;
 }

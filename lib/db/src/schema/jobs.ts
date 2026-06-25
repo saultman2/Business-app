@@ -34,6 +34,7 @@ export const jobsTable = pgTable("jobs", {
   estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
   actualCost: numeric("actual_cost", { precision: 12, scale: 2 }),
   notes: text("notes"),
+  billingStatus: text("billing_status").notNull().default("none"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

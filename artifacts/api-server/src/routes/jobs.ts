@@ -8,6 +8,7 @@ import {
   receiptsTable,
   estimatesTable,
   materialListsTable,
+  materialItemsTable,
 } from "@workspace/db";
 import {
   ListJobsQueryParams,
@@ -20,7 +21,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/auth";
 import { ownsClient } from "../lib/ownership";
-import { serializeJob, n, toNumStr } from "../lib/serialize";
+import { serializeJob, n, nn, toNumStr } from "../lib/serialize";
 import { hasActiveSubscription, FREE_JOB_LIMIT } from "../lib/revenuecat";
 
 const router: IRouter = Router();
@@ -109,6 +110,73 @@ router.post("/jobs", async (req, res): Promise<void> => {
     })
     .returning();
   res.status(201).json(serializeJob(job));
+});
+
+router.get("/jobs/finance-summary", async (req, res): Promise<void> => {
+  const cid = req.companyId!;
+
+  const [jobRows, materialTotals, estimateTotals] = await Promise.all([
+    db
+      .select({ job: jobsTable, clientName: clientsTable.name })
+      .from(jobsTable)
+      .leftJoin(
+        clientsTable,
+        and(eq(jobsTable.clientId, clientsTable.id), eq(clientsTable.companyId, cid)),
+      )
+      .where(eq(jobsTable.companyId, cid))
+      .orderBy(desc(jobsTable.createdAt)),
+
+    db
+      .select({ jobId: materialListsTable.jobId, total: sum(materialItemsTable.lineTotal) })
+      .from(materialItemsTable)
+      .innerJoin(materialListsTable, eq(materialItemsTable.materialListId, materialListsTable.id))
+      .where(eq(materialListsTable.companyId, cid))
+      .groupBy(materialListsTable.jobId),
+
+    db
+      .select({
+        jobId: estimatesTable.jobId,
+        total: estimatesTable.total,
+        laborSubtotal: estimatesTable.laborSubtotal,
+        status: estimatesTable.status,
+      })
+      .from(estimatesTable)
+      .where(eq(estimatesTable.companyId, cid))
+      .orderBy(desc(estimatesTable.createdAt)),
+  ]);
+
+  const materialMap = new Map<number, number>();
+  for (const row of materialTotals) {
+    if (row.jobId != null) materialMap.set(row.jobId, n(row.total));
+  }
+
+  const estimateMap = new Map<number, { total: number; laborSubtotal: number }>();
+  for (const row of estimateTotals) {
+    if (row.jobId == null) continue;
+    const existing = estimateMap.get(row.jobId);
+    const isApproved = row.status === "approved";
+    if (!existing || isApproved) {
+      estimateMap.set(row.jobId, {
+        total: n(row.total),
+        laborSubtotal: n(row.laborSubtotal),
+      });
+    }
+  }
+
+  res.json(
+    jobRows.map(({ job, clientName }) => ({
+      id: job.id,
+      title: job.title,
+      clientId: job.clientId,
+      clientName: clientName ?? null,
+      status: job.status,
+      billingStatus: job.billingStatus,
+      materialsTotal: materialMap.get(job.id) ?? 0,
+      laborTotal: estimateMap.get(job.id)?.laborSubtotal ?? 0,
+      expectedPay:
+        estimateMap.get(job.id)?.total ?? nn(job.estimatedValue) ?? 0,
+    })),
+  );
 });
 
 async function loadJob(companyId: number, id: number) {

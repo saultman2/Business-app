@@ -48,6 +48,7 @@ export interface Job {
   actualCost?: number | null;
   /** @nullable */
   notes?: string | null;
+  billingStatus?: string;
   createdAt: string;
 }
 
@@ -359,6 +360,21 @@ export interface JobUpdate {
   actualCost?: number | string | null;
   /** @nullable */
   notes?: string | null;
+  billingStatus?: string;
+}
+
+export interface JobFinanceSummary {
+  id: number;
+  title: string;
+  /** @nullable */
+  clientId?: number | null;
+  /** @nullable */
+  clientName?: string | null;
+  status: string;
+  billingStatus: string;
+  materialsTotal: number;
+  laborTotal: number;
+  expectedPay: number;
 }
 
 export interface JobSummary {

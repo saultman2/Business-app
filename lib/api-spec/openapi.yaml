@@ -293,6 +293,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/Job"
 
+  /jobs/finance-summary:
+    get:
+      operationId: getJobsFinanceSummary
+      tags: [jobs]
+      summary: Per-job financial snapshot
+      responses:
+        "200":
+          description: Jobs with aggregated financial totals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobFinanceSummary"
+
   /jobs/{id}:
     get:
       operationId: getJob
@@ -1705,6 +1720,8 @@ components:
           type: [number, "null"]
         notes:
           type: [string, "null"]
+        billingStatus:
+          type: string
         createdAt:
           type: string
 
@@ -1776,6 +1793,31 @@ components:
           type: [number, string, "null"]
         notes:
           type: [string, "null"]
+        billingStatus:
+          type: string
+
+    JobFinanceSummary:
+      type: object
+      required: [id, title, status, billingStatus, materialsTotal, laborTotal, expectedPay]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        clientId:
+          type: [integer, "null"]
+        clientName:
+          type: [string, "null"]
+        status:
+          type: string
+        billingStatus:
+          type: string
+        materialsTotal:
+          type: number
+        laborTotal:
+          type: number
+        expectedPay:
+          type: number
 
     JobSummary:
       type: object

@@ -63,6 +63,7 @@ export * from './invoiceStyle';
 export * from './invoiceStyleLogoPosition';
 export * from './invoiceUpdate';
 export * from './job';
+export * from './jobFinanceSummary';
 export * from './jobInput';
 export * from './jobPhoto';
 export * from './jobPhotoInput';
