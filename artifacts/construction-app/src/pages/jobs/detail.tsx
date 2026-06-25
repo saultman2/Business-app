@@ -399,14 +399,18 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                   ) : (
                     <span className="text-xs text-muted-foreground">No prior records for this item.</span>
                   )}
-                  {d.retailEstimates.filter(e => e.price != null).map((e, i) => (
+                  {d.retailEstimates.filter(e => e.price != null).map((e, i) => {
+                    const confLabel = e.confidence === "high" ? "High" : e.confidence === "estimate" ? "Estimate" : "Approximate";
+                    return (
                     <button key={i} type="button" onClick={() => applyPrice(rowKey, e.price!)} className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-muted">
                       <Badge variant="outline">AI estimate</Badge>
                       <span className="font-medium">{formatCurrency(e.price!)}</span>
-                      <span className="text-muted-foreground">{e.store} (approx.)</span>
+                      <span className="text-muted-foreground">{e.store}</span>
+                      <span className="text-muted-foreground">· {confLabel}</span>
                       <span className="text-primary">· Use</span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 {d.disclaimer && <p className="text-[11px] text-muted-foreground">{d.disclaimer}</p>}
               </div>

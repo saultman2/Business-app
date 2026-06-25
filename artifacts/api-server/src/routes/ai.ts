@@ -47,6 +47,14 @@ type OpenAIClient = {
       }) => Promise<{ choices: { message: { content: string | null } }[] }>;
     };
   };
+  responses: {
+    create: (params: {
+      model: string;
+      input: string;
+      tools?: { type: string }[];
+      max_output_tokens?: number;
+    }) => Promise<{ output_text?: string }>;
+  };
 };
 
 function getOpenai(): OpenAIClient | null {
@@ -57,6 +65,18 @@ function getOpenai(): OpenAIClient | null {
   } catch {
     return null;
   }
+}
+
+function extractJson(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const body = fenced ? fenced[1].trim() : trimmed;
+  const start = body.indexOf("{");
+  const end = body.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    return body.slice(start, end + 1);
+  }
+  return body || "{}";
 }
 
 const router: IRouter = Router();
@@ -607,24 +627,17 @@ router.post("/ai/material-price", async (req, res): Promise<void> => {
   const openai = getOpenai();
   if (openai) {
     try {
-      const completion = await openai.chat.completions.create({
+      const response = await openai.responses.create({
         model: "gpt-5.4",
-        max_completion_tokens: 512,
-        messages: [
-          {
-            role: "system",
-            content: `You are a construction materials pricing assistant. Estimate the current approximate US retail unit price for a material item at Home Depot and Lowe's.
-Respond ONLY with valid JSON: { "estimates": [ { "store": "Home Depot", "price": number|null, "confidence": "estimate"|"approximate" } ] }
-Use your best knowledge of typical retail pricing. Prices are approximate. If you cannot reasonably estimate, use null for price. Always include both Home Depot and Lowe's.`,
-          },
-          {
-            role: "user",
-            content: `Item: "${itemName}"${unit ? ` (unit: ${unit})` : ""}. Give the approximate retail unit price at Home Depot and Lowe's.`,
-          },
-        ],
-        response_format: { type: "json_object" },
+        tools: [{ type: "web_search" }],
+        max_output_tokens: 1200,
+        input: `Use web search to find the current approximate US retail unit price for the construction/home-improvement material "${itemName}"${unit ? ` (priced per ${unit})` : ""} at Home Depot and Lowe's.
+Prefer prices from homedepot.com and lowes.com. Report the per-unit price.
+Respond ONLY with valid JSON (no markdown, no prose) in this exact shape:
+{ "estimates": [ { "store": "Home Depot", "price": number|null, "confidence": "high"|"estimate"|"approximate" } ] }
+Set confidence to "high" when you found a clear current listed price, "estimate" when inferring from related listings, and "approximate" when only roughly guessing. If you cannot find a price, use null. Always include both Home Depot and Lowe's.`,
       });
-      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const raw = extractJson(response.output_text ?? "");
       const aiSchema = z.object({
         estimates: z.array(
           z.object({
