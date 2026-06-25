@@ -131,7 +131,7 @@ export default function ClientsPage() {
                 <Label htmlFor="name">Full Name or Company *</Label>
                 <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} />
@@ -145,8 +145,8 @@ export default function ClientsPage() {
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" name="address" value={formData.address} onChange={handleChange} />
               </div>
-              <div className="grid grid-cols-6 gap-4">
-                <div className="col-span-3 space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+                <div className="col-span-2 sm:col-span-3 space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" name="city" value={formData.city} onChange={handleChange} />
                 </div>
@@ -154,7 +154,7 @@ export default function ClientsPage() {
                   <Label htmlFor="state">ST</Label>
                   <Input id="state" name="state" value={formData.state} onChange={handleChange} />
                 </div>
-                <div className="col-span-2 space-y-2">
+                <div className="col-span-1 sm:col-span-2 space-y-2">
                   <Label htmlFor="zipCode">ZIP</Label>
                   <Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} />
                 </div>

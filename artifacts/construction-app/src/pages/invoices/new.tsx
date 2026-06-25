@@ -312,7 +312,7 @@ export default function NewInvoicePage() {
               <Label className="text-sm">Invoice #</Label>
               <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="bg-background" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label className="text-sm">Invoice Date</Label>
                 <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} className="bg-background" />

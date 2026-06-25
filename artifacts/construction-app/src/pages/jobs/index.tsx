@@ -266,7 +266,7 @@ export default function JobsPage() {
                       onChange={e => setNewClientData(prev => ({ ...prev, name: e.target.value }))}
                       required={showNewClientForm}
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Input
                         placeholder="Phone"
                         value={newClientData.phone}
@@ -298,7 +298,7 @@ export default function JobsPage() {
                   <CalendarPlus className="h-4 w-4 text-primary" />
                   Schedule (optional)
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="scheduleDate" className="text-xs">Date</Label>
                     <Input
@@ -333,10 +333,10 @@ export default function JobsPage() {
               <div className="space-y-2">
                 <Label htmlFor="address">Job Address</Label>
                 <Input id="address" name="address" value={formData.address} onChange={handleChange} placeholder="Street address" />
-                <div className="grid grid-cols-6 gap-2">
-                  <Input className="col-span-3" name="city" value={formData.city} onChange={handleChange} placeholder="City" />
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                  <Input className="col-span-2 sm:col-span-3" name="city" value={formData.city} onChange={handleChange} placeholder="City" />
                   <Input className="col-span-1" name="state" value={formData.state} onChange={handleChange} placeholder="ST" />
-                  <Input className="col-span-2" name="zipCode" value={formData.zipCode} onChange={handleChange} placeholder="ZIP" />
+                  <Input className="col-span-1 sm:col-span-2" name="zipCode" value={formData.zipCode} onChange={handleChange} placeholder="ZIP" />
                 </div>
               </div>
 

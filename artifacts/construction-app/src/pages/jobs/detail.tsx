@@ -795,7 +795,7 @@ function OverviewTab({ job, summary }: { job: JobLike; summary: SummaryLike }) {
                 <label className="text-muted-foreground block mb-1 text-sm">Title</label>
                 <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Job title" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-muted-foreground block mb-1 text-sm">Client</label>
                   <Select value={form.clientId} onValueChange={(v) => setForm((f) => ({ ...f, clientId: v }))}>

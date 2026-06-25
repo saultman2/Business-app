@@ -167,8 +167,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-6 gap-4">
-                  <div className="col-span-3 space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+                  <div className="col-span-2 sm:col-span-3 space-y-2">
                     <Label htmlFor="city">City</Label>
                     <Input id="city" name="city" value={formData.city} onChange={handleChange} />
                   </div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                     <Label htmlFor="state">State</Label>
                     <Input id="state" name="state" value={formData.state} onChange={handleChange} />
                   </div>
-                  <div className="col-span-2 space-y-2">
+                  <div className="col-span-1 sm:col-span-2 space-y-2">
                     <Label htmlFor="zipCode">Zip Code</Label>
                     <Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} />
                   </div>

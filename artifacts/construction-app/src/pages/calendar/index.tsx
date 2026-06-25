@@ -154,7 +154,7 @@ export default function CalendarPage() {
                   <Label>Event Title</Label>
                   <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Type / Label</Label>
                     <Select value={formData.type} onValueChange={v => setFormData({ ...formData, type: v })}>

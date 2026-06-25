@@ -726,7 +726,7 @@ export default function QuotesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
+                              className="h-9 w-9"
                               title="Edit estimate"
                               onClick={() => (window.location.href = `/jobs/${est.jobId ?? 0}/estimate?estimateId=${est.id}`)}
                             >
@@ -735,7 +735,7 @@ export default function QuotesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              className="h-9 w-9 text-destructive hover:text-destructive"
                               title="Delete estimate"
                               disabled={deletingId === est.id}
                               onClick={() => handleDelete(est.id, est.title)}
