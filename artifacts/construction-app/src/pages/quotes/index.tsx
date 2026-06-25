@@ -261,6 +261,34 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
             onChange={e => setEstimateTitle(e.target.value)}
             className="flex-1 text-lg font-semibold h-9 py-1 px-2 max-w-xs"
           />
+          <Select
+            value={jobId ? String(jobId) : "none"}
+            onValueChange={v => setJobId(v === "none" ? null : Number(v))}
+          >
+            <SelectTrigger className="h-9 w-36 text-sm">
+              <SelectValue placeholder="Job (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No job</SelectItem>
+              {jobs?.map(j => (
+                <SelectItem key={j.id} value={String(j.id)}>{j.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={clientId ? String(clientId) : "none"}
+            onValueChange={v => setClientId(v === "none" ? null : Number(v))}
+          >
+            <SelectTrigger className="h-9 w-36 text-sm">
+              <SelectValue placeholder="Client (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No client</SelectItem>
+              {clients?.map(c => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="ml-auto flex gap-2">
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="w-4 h-4 mr-1.5" /> Print / PDF
