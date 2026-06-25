@@ -1,0 +1,391 @@
+Construction Business Manager App – Professional Revision & Feature Expansion Prompt
+
+You are acting as a senior product designer, UI/UX designer, full-stack developer, and construction software consultant. Your goal is to transform this prototype into a polished, production-ready construction management platform that contractors, estimators, remodelers, electricians, gutter companies, siding contractors, and service businesses would willingly pay premium pricing for.
+
+Do not simply patch existing features. Review the entire application and improve workflows, UI, functionality, and backend logic wherever necessary to create a professional, marketable product.
+
+Core Objective
+
+Create a complete contractor business management platform that combines:
+
+CRM
+Estimates
+Material Lists
+Invoicing
+Scheduling
+Project Management
+Before/After Photos
+GPS Navigation
+AI Assistant
+Client Management
+Receipt Storage
+Business Analytics
+
+The application should feel like a premium software product rather than a prototype.
+
+Calendar & Scheduling Improvements
+
+The calendar system must be fully functional.
+
+Add:
+Edit existing appointments
+Reschedule appointments
+Delete appointments
+Drag-and-drop calendar events
+Day view
+Week view
+Month view
+Color-coded job statuses
+Recurring appointments
+Appointment notes
+Team assignment options
+Job Status Colors
+
+Use distinct colors rather than multiple shades of green.
+
+Examples:
+
+Lead = Blue
+Estimate Scheduled = Orange
+Estimate Sent = Purple
+Approved = Green
+Materials Ordered = Teal
+In Progress = Yellow
+Awaiting Payment = Red
+Completed = Dark Green
+Closed = Gray
+
+Allow users to customize colors.
+
+Estimate Workflow Improvements
+
+Current estimate functionality needs a complete workflow.
+
+Required Flow
+
+Lead
+↓
+Estimate Created
+↓
+Estimate Sent
+↓
+Client Approval
+↓
+Material List Created
+↓
+Project Created
+↓
+Work In Progress
+↓
+Completed
+↓
+Invoice Sent
+↓
+Paid
+
+Requirements
+
+When an estimate is approved:
+
+Automatically generate a project
+Automatically generate a material list
+Automatically generate a project timeline
+
+However:
+
+Original estimate must remain editable
+Estimate history must be preserved
+Revision tracking must be stored
+
+Add:
+
+Estimate version history
+Estimate duplication
+Estimate templates
+Labor calculator
+Profit margin calculator
+Tax calculator
+Markup calculator
+Project Management Fixes
+
+The Projects section currently has issues and needs a full audit.
+
+Verify:
+Projects save correctly
+Projects load correctly
+Status updates function properly
+Files remain attached
+Photos remain attached
+Materials remain linked
+Add:
+
+Project Dashboard:
+
+Job value
+Profit estimate
+Material cost
+Labor cost
+Completion percentage
+Upcoming tasks
+Upcoming appointments
+AI Invoice Builder
+
+Remove limited invoice template selection.
+
+Replace with:
+
+AI Invoice Designer
+
+User selects:
+
+Create Invoice
+
+AI asks:
+
+"What would you like to customize?"
+
+Examples:
+
+Modern
+Corporate
+Construction
+Luxury
+Minimalist
+Industrial
+
+The AI then automatically:
+
+Pulls company information
+Pulls client information
+Pulls project information
+Pulls estimate information
+Pulls logo
+Pulls contact details
+
+Generates:
+
+Professional invoice
+PDF
+Printable version
+Email version
+
+Allow conversational editing:
+
+Examples:
+
+"Move logo to top."
+
+"Make invoice more professional."
+
+"Add payment terms."
+
+"Increase font size."
+
+"Use company colors."
+
+AI updates invoice live.
+
+AI Job Photo Rendering
+
+Create a new premium feature.
+
+Before & After Visualization
+
+User uploads:
+
+Existing project photo
+
+AI asks:
+
+Scope of work
+Materials used
+Colors selected
+Desired outcome
+
+AI generates:
+
+Enhanced finished version
+Realistic project rendering
+Side-by-side comparison
+
+Examples:
+
+New siding
+New gutters
+New roof
+New deck
+New paint
+Landscape improvements
+Electrical upgrades
+
+Store generated images in project records.
+
+GPS Navigation Integration
+
+Add GPS section.
+
+New Navigation Tab
+
+When user selects a project:
+
+Display:
+
+Client name
+Job address
+Phone number
+
+Buttons:
+
+Navigate
+Call
+Text
+
+Selecting Navigate:
+
+Opens in-app map
+Route guidance
+Option to open external navigation apps
+
+Support:
+
+Apple Maps
+Google Maps
+
+Automatically pull address from project records.
+
+Client Management Improvements
+
+Create a dedicated CRM.
+
+Each client profile should contain:
+
+Name
+Company
+Phone
+Email
+Address
+Notes
+Photos
+Estimates
+Invoices
+Projects
+Appointments
+
+Timeline view showing all activity.
+
+Material List Enhancements
+
+Add:
+
+Item
+Quantity
+Unit Cost
+Supplier
+SKU
+Total Cost
+
+Auto-calculate:
+
+Material totals
+Labor totals
+Grand totals
+
+Future-ready architecture for supplier integrations.
+
+Receipt Management
+
+Add:
+
+Receipt uploads
+OCR scanning
+Receipt categorization
+
+Auto-sort:
+
+Materials
+Fuel
+Equipment
+Subcontractors
+Miscellaneous
+
+Link receipts to projects automatically.
+
+Dashboard Improvements
+
+Current dashboard should feel like a real business command center.
+
+Display:
+
+Revenue
+Outstanding invoices
+Active jobs
+Upcoming appointments
+Material costs
+Monthly profit
+Recent activity
+
+Add visual charts and graphs.
+
+UI / UX Redesign
+
+The app currently feels too similar to competitor products.
+
+Redesign while keeping functionality.
+
+Design Goals
+Original branding
+Premium appearance
+Modern contractor-focused layout
+Clean spacing
+Better typography
+Better icon system
+Faster navigation
+
+Use:
+
+Card-based layouts
+Cleaner forms
+Modern buttons
+Consistent design language
+Performance & Stability
+
+Audit entire application.
+
+Fix:
+
+Broken navigation
+Project tab issues
+Saving issues
+Loading issues
+Database relationships
+Mobile responsiveness
+
+Ensure:
+
+No placeholder data
+No sample projects
+No demo content
+Production-ready workflows
+Premium Features to Add
+
+Add any missing features commonly found in top contractor management software:
+
+Digital signatures
+Change orders
+Client portal
+Progress photo tracking
+Job costing
+Payment tracking
+Team management
+Task management
+Document storage
+PDF exports
+Email integration
+SMS integration
+Automated reminders
+AI business assistant
+AI estimate review
+AI material recommendations
+Final Goal
+
+The final product should feel like a premium contractor operating system that combines the best aspects of estimating, CRM, scheduling, invoicing, project management, AI assistance, and job tracking into one seamless platform. Every page should have a clear purpose, polished UI, reliable functionality, and enough value that contractors would confidently pay premium monthly subscription pricing for the software

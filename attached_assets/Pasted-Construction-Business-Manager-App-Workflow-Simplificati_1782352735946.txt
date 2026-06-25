@@ -1,0 +1,409 @@
+Construction Business Manager App – Workflow Simplification & Crew Management Expansion
+
+Use this prompt as a continuation of all previous development instructions. Do not remove existing functionality. Preserve all current features and continue improving them. The primary goal of this revision is to simplify the user experience while retaining enterprise-level capabilities behind the scenes.
+
+Primary Objective
+
+The application currently contains many powerful features. Instead of removing features, reorganize them into a simpler and more intuitive workflow.
+
+A contractor should be able to open the app and perform the most common tasks within seconds.
+
+The app should feel simple for a one-person business but scalable enough for larger companies with office staff, estimators, project managers, and field crews.
+
+The overall goal is to create the easiest contractor management platform on the market while maintaining advanced functionality.
+
+Homepage Redesign
+
+The current homepage should be redesigned around primary business actions rather than individual tools.
+
+Instead of displaying numerous features, organize everything into major business categories.
+
+Homepage Main Cards
+Clients
+
+Purpose:
+Manage all customers and leads.
+
+Includes:
+
+Client database
+Lead management
+Contact information
+Notes
+Client history
+Project history
+Estimate history
+Invoices
+Photos
+Documents
+Quick Quote
+
+Purpose:
+Allow contractors to generate estimates while standing with a customer.
+
+Workflow:
+
+Open App
+→ Quick Quote
+→ Enter customer name
+→ Enter job description
+→ Enter materials
+→ Enter labor
+→ Generate quote
+→ Send immediately
+
+Target completion time:
+Under 3 minutes.
+
+This should be the fastest workflow in the entire app.
+
+Projects
+
+Purpose:
+Manage active work.
+
+Includes:
+
+Active projects
+Pending projects
+Completed projects
+Project timelines
+Photos
+Material tracking
+Receipts
+Tasks
+Change orders
+Profit tracking
+Calendar
+
+Purpose:
+Scheduling center.
+
+Includes:
+
+Daily view
+Weekly view
+Monthly view
+Shared calendar
+Employee schedules
+Crew schedules
+Project schedules
+Appointment scheduling
+Rescheduling
+Calendar exports
+Crew
+
+Purpose:
+Employee and team management.
+
+Includes:
+
+Employees
+Crew assignments
+Schedule management
+Time tracking
+Contact information
+Assigned projects
+Assigned tasks
+Finances
+
+Purpose:
+Money management center.
+
+Includes:
+
+Estimates
+Invoices
+Payments
+Expenses
+Profit reports
+Material costs
+Labor costs
+Tax reporting
+AI Tools
+
+Purpose:
+All AI features in one location.
+
+Includes:
+
+AI estimate builder
+AI invoice designer
+AI project assistant
+AI material recommendations
+AI photo rendering
+AI business assistant
+Quick Quote System
+
+Create a dedicated Quick Quote workflow.
+
+This should be the flagship feature.
+
+Contractors should be able to build a quote from:
+
+Option 1
+
+Client First
+
+Client
+→ Job
+→ Materials
+→ Quote
+
+Option 2
+
+Job First
+
+Job
+→ Client
+→ Materials
+→ Quote
+
+Option 3
+
+AI Assisted
+
+User describes job:
+
+"Install 200 feet of seamless gutters with 4 downspouts."
+
+AI suggests:
+
+Materials
+Labor
+Pricing
+Markup
+
+User reviews and sends.
+
+Crew Management System
+
+Create a new Crew Management section.
+
+This should support companies from 1 employee to 100+ employees.
+
+Employee Profiles
+
+Store:
+
+Name
+Phone
+Email
+Position
+Hire date
+Pay rate
+Notes
+Certifications
+License information
+Emergency contact
+Crew Assignments
+
+Allow users to:
+
+Assign employees to:
+
+Projects
+Appointments
+Estimates
+Service calls
+Crew Scheduling
+
+Managers should be able to:
+
+View:
+
+Daily schedule
+Weekly schedule
+Monthly schedule
+
+Drag and drop assignments.
+
+Crew Availability
+
+Track:
+
+Available
+Assigned
+Vacation
+Sick
+Off Duty
+Shared Calendar System
+
+Expand calendar functionality.
+
+Allow:
+
+Individual View
+
+One employee.
+
+Crew View
+
+Entire crew.
+
+Company View
+
+All employees.
+
+Calendar Sharing
+
+Add:
+
+Share Calendar
+
+Options:
+
+Daily PDF
+Weekly PDF
+Monthly PDF
+Email
+SMS
+Printable format
+
+Managers should be able to send schedules directly to crews.
+
+Project Workflow Improvements
+
+Every project should follow a consistent structure.
+
+Client
+↓
+Lead
+↓
+Estimate
+↓
+Approval
+↓
+Material List
+↓
+Project
+↓
+Schedule
+↓
+Work In Progress
+↓
+Invoice
+↓
+Paid
+↓
+Archived
+
+Automatically generate records between stages.
+
+Dashboard Simplification
+
+The dashboard should show only the most important information.
+
+Top Section
+
+Today's Schedule
+
+Upcoming Jobs
+
+Crew Assignments
+
+Pending Estimates
+
+Outstanding Invoices
+
+Middle Section
+
+Revenue
+
+Monthly Profit
+
+Active Projects
+
+Jobs Completed
+
+Bottom Section
+
+Recent Activity Feed
+
+Example:
+
+"Estimate approved by John Smith."
+
+"Invoice paid."
+
+"Crew assigned to Project #104."
+
+Material System Enhancements
+
+Create reusable material assemblies.
+
+Examples:
+
+Gutter Package
+
+Automatically includes:
+
+Gutters
+Hangers
+End caps
+Outlets
+Downspouts
+Vinyl Siding Package
+
+Automatically includes:
+
+Panels
+J Channel
+Starter Strip
+Corners
+Fasteners
+Electrical Package
+
+Automatically includes:
+
+Wire
+Breakers
+Boxes
+Connectors
+Devices
+
+This dramatically speeds up estimating.
+
+Professional Appearance Improvements
+
+The app must feel like a premium software product.
+
+Improve:
+
+Typography
+Spacing
+Card design
+Navigation
+Forms
+Icons
+Buttons
+
+Avoid looking like a clone of any existing software.
+
+Create a unique identity specifically designed for contractors and construction companies.
+
+Scalability Requirements
+
+The application must support:
+
+Solo Contractor
+
+One user.
+
+Small Business
+
+1–10 employees.
+
+Growing Company
+
+10–50 employees.
+
+Enterprise
+
+50+ employees.
+
+All workflows should scale without needing redesign.
+
+Final Goal
+
+Transform the application into a contractor operating system that is simple enough for a contractor standing in a customer's driveway to generate a professional quote in minutes, while also being powerful enough to manage clients, crews, projects, finances, scheduling, invoicing, AI assistance, and business operations from a single platform. Every screen should have a clear purpose, minimal clutter, intuitive navigation, and premium visual design worthy of a paid SaaS product.
