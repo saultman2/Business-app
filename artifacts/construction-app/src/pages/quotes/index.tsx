@@ -224,6 +224,8 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
       await updateEstimate.mutateAsync({
         id: est.id,
         data: {
+          jobId: jobId || undefined,
+          clientId: clientId || undefined,
           notes: `[AI-generated quote] ${disclaimer}`,
           scopeOfWork: description,
           taxRate: taxRate,
