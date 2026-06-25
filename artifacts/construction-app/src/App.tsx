@@ -19,6 +19,7 @@ import CalendarPage from "@/pages/calendar/index";
 import SettingsPage from "@/pages/settings";
 import InvoicesPage from "@/pages/invoices/index";
 import InvoiceDetail from "@/pages/invoices/detail";
+import QuotesPage from "@/pages/quotes/index";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -142,6 +143,7 @@ function ProtectedRoutes() {
         <Route path="/clients/:id" component={ClientDetail} />
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/quotes" component={QuotesPage} />
         <Route path="/invoices" component={InvoicesPage} />
         <Route path="/invoices/:id" component={InvoiceDetail} />
         <Route component={NotFound} />

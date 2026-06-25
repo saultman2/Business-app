@@ -20,6 +20,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiQuoteEstimateInput,
+  AiQuoteEstimateResult,
+  AiSuggestMaterialsInput,
+  AiSuggestMaterialsResult,
   CalendarEvent,
   CalendarEventInput,
   CalendarEventUpdate,
@@ -3934,6 +3938,148 @@ export const useDeleteEvent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteEventMutationOptions(options));
+    }
+
+export const getAiQuoteEstimateUrl = () => {
+
+
+
+
+  return `/api/ai/quote-estimate`
+}
+
+/**
+ * @summary Generate AI line-item estimate from job description and photos
+ */
+export const aiQuoteEstimate = async (aiQuoteEstimateInput: AiQuoteEstimateInput, options?: RequestInit): Promise<AiQuoteEstimateResult> => {
+
+  return customFetch<AiQuoteEstimateResult>(getAiQuoteEstimateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiQuoteEstimateInput,)
+  }
+);}
+
+
+
+
+export const getAiQuoteEstimateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiQuoteEstimate>>, TError,{data: BodyType<AiQuoteEstimateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiQuoteEstimate>>, TError,{data: BodyType<AiQuoteEstimateInput>}, TContext> => {
+
+const mutationKey = ['aiQuoteEstimate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiQuoteEstimate>>, {data: BodyType<AiQuoteEstimateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiQuoteEstimate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiQuoteEstimateMutationResult = NonNullable<Awaited<ReturnType<typeof aiQuoteEstimate>>>
+    export type AiQuoteEstimateMutationBody = BodyType<AiQuoteEstimateInput>
+    export type AiQuoteEstimateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate AI line-item estimate from job description and photos
+ */
+export const useAiQuoteEstimate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiQuoteEstimate>>, TError,{data: BodyType<AiQuoteEstimateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiQuoteEstimate>>,
+        TError,
+        {data: BodyType<AiQuoteEstimateInput>},
+        TContext
+      > => {
+      return useMutation(getAiQuoteEstimateMutationOptions(options));
+    }
+
+export const getAiSuggestMaterialsUrl = () => {
+
+
+
+
+  return `/api/ai/suggest-materials`
+}
+
+/**
+ * @summary Generate AI material suggestions for a job
+ */
+export const aiSuggestMaterials = async (aiSuggestMaterialsInput: AiSuggestMaterialsInput, options?: RequestInit): Promise<AiSuggestMaterialsResult> => {
+
+  return customFetch<AiSuggestMaterialsResult>(getAiSuggestMaterialsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiSuggestMaterialsInput,)
+  }
+);}
+
+
+
+
+export const getAiSuggestMaterialsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiSuggestMaterials>>, TError,{data: BodyType<AiSuggestMaterialsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiSuggestMaterials>>, TError,{data: BodyType<AiSuggestMaterialsInput>}, TContext> => {
+
+const mutationKey = ['aiSuggestMaterials'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiSuggestMaterials>>, {data: BodyType<AiSuggestMaterialsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiSuggestMaterials(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiSuggestMaterialsMutationResult = NonNullable<Awaited<ReturnType<typeof aiSuggestMaterials>>>
+    export type AiSuggestMaterialsMutationBody = BodyType<AiSuggestMaterialsInput>
+    export type AiSuggestMaterialsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate AI material suggestions for a job
+ */
+export const useAiSuggestMaterials = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiSuggestMaterials>>, TError,{data: BodyType<AiSuggestMaterialsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiSuggestMaterials>>,
+        TError,
+        {data: BodyType<AiSuggestMaterialsInput>},
+        TContext
+      > => {
+      return useMutation(getAiSuggestMaterialsMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

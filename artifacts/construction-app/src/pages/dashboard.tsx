@@ -1,169 +1,208 @@
 import React from "react";
-import { useGetDashboardSummary } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useGetDashboardSummary, useListEstimates, useListInvoices } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HardHat, FileText, DollarSign, Users, Calendar } from "lucide-react";
 import { format } from "date-fns";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Search, Plus, FileText, CheckCircle2, Clock, AlertCircle, List } from "lucide-react";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+
+function StatCard({ label, count, amount, color, icon }: { label: string; count: number; amount: number; color?: string; icon?: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-xl border border-border p-4 cursor-pointer hover:shadow-sm transition-shadow">
+      <div className="flex items-center gap-2 mb-2 text-muted-foreground text-sm">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="text-3xl font-bold text-foreground">{count}</div>
+      <div className="text-sm text-muted-foreground mt-0.5">{formatCurrency(amount)}</div>
+    </div>
+  );
+}
+
+type TableTab = "estimates" | "invoices";
+
+function estimateStatusBadge(status: string) {
+  switch (status) {
+    case "draft": return <Badge variant="secondary" className="text-xs">Draft</Badge>;
+    case "sent": return <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs">Est. Sent</Badge>;
+    case "approved": return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">Approved</Badge>;
+    case "declined": return <Badge variant="destructive" className="text-xs">Declined</Badge>;
+    default: return <Badge variant="outline" className="text-xs capitalize">{status}</Badge>;
+  }
+}
+
+function invoiceStatusBadge(status: string) {
+  switch (status) {
+    case "paid": return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">Paid</Badge>;
+    case "unpaid": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">Pending</Badge>;
+    case "overdue": return <Badge variant="destructive" className="text-xs">Overdue</Badge>;
+    default: return <Badge variant="outline" className="text-xs capitalize">{status}</Badge>;
+  }
+}
 
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary();
+  const { data: estimates } = useListEstimates({});
+  const { data: invoices } = useListInvoices({});
+  const [tab, setTab] = useState<TableTab>("estimates");
+  const [search, setSearch] = useState("");
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const draftEstimates = estimates?.filter(e => e.status === "draft") ?? [];
+  const sentEstimates = estimates?.filter(e => e.status === "sent") ?? [];
+  const approvedEstimates = estimates?.filter(e => e.status === "approved") ?? [];
+  const allEstimates = estimates ?? [];
 
-  if (isLoading || !summary) {
+  const pendingInvoices = invoices?.filter(i => i.status === "unpaid") ?? [];
+  const paidInvoices = invoices?.filter(i => i.status === "paid") ?? [];
+  const overdueInvoices = invoices?.filter(i => i.status === "overdue") ?? [];
+  const allInvoices = invoices ?? [];
+
+  const sumAmount = (items: { total?: number; totalAmount?: number }[]) =>
+    items.reduce((s, i) => s + (("total" in i ? i.total as number : 0) || ("totalAmount" in i ? i.totalAmount as number : 0) || 0), 0);
+
+  const filteredEstimates = allEstimates.filter(e =>
+    !search || e.title.toLowerCase().includes(search.toLowerCase()) ||
+    (e.clientName || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredInvoices = allInvoices.filter(i =>
+    !search || (i.invoiceNumber || "").toLowerCase().includes(search.toLowerCase()) ||
+    (i.clientName || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <Skeleton className="h-4 w-[100px]" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-[120px]" />
-              </CardContent>
-            </Card>
-          ))}
+      <div className="p-6 md:p-8 space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Command Center</h1>
-          <p className="text-slate-500 mt-1">Overview of your construction business</p>
+    <div className="p-6 md:p-8 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search estimates and invoices"
+            className="pl-9 bg-white"
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            <Link href="/clients/new">New Client</Link>
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/invoices">New Invoice</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/estimates/new">New Estimate</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/jobs/new">New Job</Link>
+          <Button asChild className="bg-[#2563eb] hover:bg-[#1d4ed8]">
+            <Link href="/quotes">New Estimate</Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <HardHat className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.activeJobs}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Estimates</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.estimatesSent}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary.estimatesDrafted} drafted
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Collected Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.totalPaidAmount)}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.totalClients}</div>
-          </CardContent>
-        </Card>
+      <div>
+        <h2 className="text-base font-semibold mb-3">Estimates</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Draft" count={draftEstimates.length} amount={sumAmount(draftEstimates)}
+            icon={<FileText className="w-4 h-4" />} />
+          <StatCard label="Sent" count={sentEstimates.length} amount={sumAmount(sentEstimates)}
+            color="orange" icon={<Clock className="w-4 h-4" />} />
+          <StatCard label="Approved" count={approvedEstimates.length} amount={sumAmount(approvedEstimates)}
+            color="green" icon={<CheckCircle2 className="w-4 h-4" />} />
+          <StatCard label="All" count={allEstimates.length} amount={sumAmount(allEstimates)}
+            icon={<List className="w-4 h-4" />} />
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Recent Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {summary.recentJobs.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">No recent jobs</div>
-              ) : (
-                summary.recentJobs.map(job => (
-                  <Link href={`/jobs/${job.id}`} key={job.id} className="flex items-center justify-between group hover:bg-slate-50 p-2 -mx-2 rounded-md transition-colors cursor-pointer">
-                    <div className="flex flex-col">
-                      <span className="font-medium group-hover:text-primary transition-colors">{job.title}</span>
-                      <span className="text-sm text-muted-foreground">{job.clientName}</span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-mono">{formatCurrency(job.estimatedValue || 0)}</span>
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider">{job.status.replace('_', ' ')}</span>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <h2 className="text-base font-semibold mb-3">Invoices</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Pending" count={pendingInvoices.length} amount={sumAmount(pendingInvoices)}
+            icon={<Clock className="w-4 h-4" />} />
+          <StatCard label="Paid" count={paidInvoices.length} amount={sumAmount(paidInvoices)}
+            color="green" icon={<CheckCircle2 className="w-4 h-4" />} />
+          <StatCard label="Overdue" count={overdueInvoices.length} amount={sumAmount(overdueInvoices)}
+            color="red" icon={<AlertCircle className="w-4 h-4" />} />
+          <StatCard label="All" count={allInvoices.length} amount={sumAmount(allInvoices)}
+            icon={<List className="w-4 h-4" />} />
+        </div>
+      </div>
 
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Upcoming Events</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/calendar">View Calendar</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {summary.upcomingEvents.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">No upcoming events</div>
-              ) : (
-                summary.upcomingEvents.map(event => (
-                  <div key={event.id} className="flex items-start gap-4">
-                    <div className="flex flex-col items-center justify-center bg-slate-100 rounded-md w-12 h-12 shrink-0">
-                      <span className="text-xs font-medium text-slate-500 uppercase">{format(new Date(event.startDatetime), 'MMM')}</span>
-                      <span className="text-lg font-bold text-slate-900 leading-none">{format(new Date(event.startDatetime), 'd')}</span>
-                    </div>
-                    <div className="flex flex-col justify-center py-1">
-                      <span className="font-medium text-sm">{event.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {event.allDay ? 'All Day' : format(new Date(event.startDatetime), 'h:mm a')}
-                        {event.jobTitle ? ` · ${event.jobTitle}` : ''}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="bg-white rounded-xl border border-border overflow-hidden">
+        <div className="flex border-b">
+          <button
+            onClick={() => setTab("estimates")}
+            className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 ${tab === "estimates" ? "border-[#2563eb] text-[#2563eb]" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            ESTIMATES
+          </button>
+          <button
+            onClick={() => setTab("invoices")}
+            className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 ${tab === "invoices" ? "border-[#2563eb] text-[#2563eb]" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            INVOICES
+          </button>
+        </div>
+
+        {tab === "estimates" && (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/20">
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Name</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Client</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Amount</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Modified</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredEstimates.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground text-sm">No estimates yet</td></tr>
+              ) : filteredEstimates.map(est => (
+                <tr key={est.id} className="hover:bg-muted/10 cursor-pointer" onClick={() => est.jobId && (window.location.href = `/jobs/${est.jobId}/estimate`)}>
+                  <td className="px-4 py-3 font-medium">{est.title}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{est.clientName || "Not Assigned"}</td>
+                  <td className="px-4 py-3">{formatCurrency(est.total)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatDate(est.createdAt)}</td>
+                  <td className="px-4 py-3">{estimateStatusBadge(est.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {tab === "invoices" && (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/20">
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Invoice</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Client</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Amount</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Due Date</th>
+                <th className="text-left px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredInvoices.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground text-sm">No invoices yet</td></tr>
+              ) : filteredInvoices.map(inv => (
+                <tr key={inv.id} className="hover:bg-muted/10 cursor-pointer" onClick={() => window.location.href = `/invoices/${inv.id}`}>
+                  <td className="px-4 py-3 font-medium">{inv.invoiceNumber || `INV-${inv.id}`}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{inv.clientName || "Not Assigned"}</td>
+                  <td className="px-4 py-3">{formatCurrency(inv.totalAmount)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatDate(inv.dueDate)}</td>
+                  <td className="px-4 py-3">{invoiceStatusBadge(inv.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

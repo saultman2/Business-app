@@ -7,6 +7,8 @@ servers:
   - url: /api
     description: Base API path
 tags:
+  - name: ai
+    description: AI-powered estimate and material suggestions
   - name: health
     description: Health operations
   - name: company
@@ -1073,6 +1075,47 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  # ──────────────────────────────────────
+  # AI
+  # ──────────────────────────────────────
+  /ai/quote-estimate:
+    post:
+      operationId: aiQuoteEstimate
+      tags: [ai]
+      summary: Generate AI line-item estimate from job description and photos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiQuoteEstimateInput"
+      responses:
+        "200":
+          description: AI-generated line items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiQuoteEstimateResult"
+
+  /ai/suggest-materials:
+    post:
+      operationId: aiSuggestMaterials
+      tags: [ai]
+      summary: Generate AI material suggestions for a job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiSuggestMaterialsInput"
+      responses:
+        "200":
+          description: AI-suggested material items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiSuggestMaterialsResult"
 
   # ──────────────────────────────────────
   # STORAGE
@@ -2209,4 +2252,92 @@ components:
         uploadURL:
           type: string
         objectPath:
+          type: string
+
+    AiLineItem:
+      type: object
+      required: [description, section]
+      properties:
+        description:
+          type: string
+        qty:
+          type: [number, "null"]
+        unit:
+          type: [string, "null"]
+        unitPrice:
+          type: [number, "null"]
+        hours:
+          type: [number, "null"]
+        hourlyRate:
+          type: [number, "null"]
+        section:
+          type: string
+          enum: [labor, material, equipment, other]
+
+    AiQuoteEstimateInput:
+      type: object
+      required: [jobDescription]
+      properties:
+        jobId:
+          type: [integer, "null"]
+        jobDescription:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+        zipCode:
+          type: [string, "null"]
+        mode:
+          type: string
+          enum: [labor_only, labor_and_materials]
+
+    AiQuoteEstimateResult:
+      type: object
+      required: [items, disclaimer]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiLineItem"
+        disclaimer:
+          type: string
+
+    AiSuggestMaterialsInput:
+      type: object
+      required: [jobDescription]
+      properties:
+        jobId:
+          type: [integer, "null"]
+        jobDescription:
+          type: string
+        zipCode:
+          type: [string, "null"]
+
+    AiMaterialItem:
+      type: object
+      required: [name, quantity, unit, unitPrice]
+      properties:
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPrice:
+          type: number
+        category:
+          type: [string, "null"]
+
+    AiSuggestMaterialsResult:
+      type: object
+      required: [items, disclaimer]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiMaterialItem"
+        disclaimer:
           type: string

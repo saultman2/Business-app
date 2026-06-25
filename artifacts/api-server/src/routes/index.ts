@@ -11,6 +11,7 @@ import receiptsRouter from "./receipts";
 import eventsRouter from "./events";
 import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(photosRouter);
 router.use(receiptsRouter);
 router.use(eventsRouter);
 router.use(storageRouter);
+router.use(aiRouter);
 
 export default router;

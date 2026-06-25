@@ -1,17 +1,10 @@
 ---
-name: Multi-tenant scoping rules
-description: Invariants for companyId scoping in BuildPro API routes
+name: Multitenancy pattern
+description: All data is scoped by companyId derived from Clerk auth, never from the request body
 ---
 
-BuildPro is multi-tenant: every row belongs to a company (`companyId`), derived from Clerk auth (`req.companyId`), never from the request body.
+Every DB query must filter by `eq(table.companyId, req.companyId!)`. The `req.companyId` is set by the `requireAuth` middleware via Clerk + JIT company provisioning.
 
-Invariants to keep on every route:
+**Why:** Prevents cross-tenant data leakage. CompanyId in request body would be trivially spoofable.
 
-- Primary queries filter by `companyId`. Detail/update/delete must scope by both `id` AND `companyId`.
-- Every `leftJoin`/`innerJoin` must add a `companyId` predicate on the joined table too — joining only on the FK leaks cross-tenant rows.
-- Aggregate/summary subqueries (e.g. `/jobs/:id/summary` counting photos, receipts, estimates, material lists) must each be company-scoped.
-- Any client-supplied foreign key (clientId, jobId, estimateId, invoiceId) must be ownership-checked before insert/update via `lib/ownership.ts` helpers (`ownsClient`/`ownsJob`/`ownsEstimate`...). On mismatch reject 400.
-
-**Why:** Architect review previously FAILed on 3 severe cross-tenant leaks (unauthenticated storage routes, FK injection, unscoped joins).
-
-**How to apply:** Ownership helpers treat null/undefined ids as allowed (so optional/clearing fields don't reopen writes). Storage: `GET /api/storage/objects/*` requires auth + `companyOwnsObject(companyId, storedUrl)`; stored URL format is `/api/storage/objects/uploads/<uuid>` and must match the reconstructed `storedUrl` exactly.
+**How to apply:** In every route handler, use `req.companyId` for ownership checks and scoping. Never accept companyId from req.body or req.query. See `artifacts/api-server/src/lib/auth.ts` and `lib/ownership.ts`.

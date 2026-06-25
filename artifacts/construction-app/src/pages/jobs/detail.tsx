@@ -9,21 +9,336 @@ import {
   useListEstimates,
   useListInvoices,
   useCreateJobPhoto,
+  useCreateMaterialItem,
+  useUpdateMaterialItem,
+  useDeleteMaterialItem,
   getGetJobQueryKey,
   getGetJobSummaryQueryKey,
-  getListJobPhotosQueryKey
+  getListJobPhotosQueryKey,
+  getGetJobMaterialListQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@workspace/object-storage-web";
-import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Calendar as CalendarIcon, Clock, Plus, ArrowLeft } from "lucide-react";
+import { HardHat, FileText, Image as ImageIcon, Receipt, ListTodo, MapPin, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Check, X, Calendar as CalendarIcon } from "lucide-react";
+
+interface AiMaterialSuggestion {
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  category?: string | null;
+}
+
+interface NewItemRow {
+  name: string;
+  quantity: string;
+  unit: string;
+  unitPrice: string;
+  category: string;
+}
+
+const EMPTY_NEW_ITEM: NewItemRow = { name: "", quantity: "1", unit: "ea", unitPrice: "", category: "" };
+
+function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobTitle: string; jobDescription?: string | null }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: matList, isLoading } = useGetJobMaterialList(jobId);
+  const createItem = useCreateMaterialItem();
+  const updateItem = useUpdateMaterialItem();
+  const deleteItem = useDeleteMaterialItem();
+
+  const [newRow, setNewRow] = useState<NewItemRow>(EMPTY_NEW_ITEM);
+  const [addingRow, setAddingRow] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editRow, setEditRow] = useState<NewItemRow>(EMPTY_NEW_ITEM);
+  const [isSuggestingAi, setIsSuggestingAi] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AiMaterialSuggestion[]>([]);
+  const [aiDisclaimer, setAiDisclaimer] = useState("");
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+  const [isAddingSuggestions, setIsAddingSuggestions] = useState(false);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetJobMaterialListQueryKey(jobId) });
+
+  const handleAddItem = () => {
+    if (!newRow.name.trim()) return;
+    createItem.mutate(
+      {
+        jobId,
+        data: {
+          name: newRow.name.trim(),
+          quantity: parseFloat(newRow.quantity) || 1,
+          unit: newRow.unit || "ea",
+          unitPrice: parseFloat(newRow.unitPrice) || 0,
+          category: newRow.category || null,
+        },
+      },
+      {
+        onSuccess: () => { invalidate(); setNewRow(EMPTY_NEW_ITEM); setAddingRow(false); },
+        onError: () => toast({ title: "Failed to add item", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleSaveEdit = (id: number) => {
+    updateItem.mutate(
+      {
+        id,
+        data: {
+          name: editRow.name.trim() || undefined,
+          quantity: parseFloat(editRow.quantity) || 1,
+          unit: editRow.unit || "ea",
+          unitPrice: parseFloat(editRow.unitPrice) || 0,
+          category: editRow.category || null,
+        },
+      },
+      {
+        onSuccess: () => { invalidate(); setEditingId(null); },
+        onError: () => toast({ title: "Failed to update item", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDelete = (id: number) => {
+    deleteItem.mutate({ id }, {
+      onSuccess: () => invalidate(),
+      onError: () => toast({ title: "Failed to delete item", variant: "destructive" }),
+    });
+  };
+
+  const handleAiSuggest = async () => {
+    setIsSuggestingAi(true);
+    setAiSuggestions([]);
+    setSelectedSuggestions(new Set());
+    try {
+      const res = await fetch("/api/ai/suggest-materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, jobDescription: jobDescription || jobTitle }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setAiSuggestions(data.items || []);
+      setAiDisclaimer(data.disclaimer || "");
+      setSelectedSuggestions(new Set((data.items || []).map((_: AiMaterialSuggestion, i: number) => i)));
+    } catch {
+      toast({ title: "AI suggestion failed", description: "Could not generate suggestions. Try again.", variant: "destructive" });
+    } finally {
+      setIsSuggestingAi(false);
+    }
+  };
+
+  const handleAddSelectedSuggestions = async () => {
+    setIsAddingSuggestions(true);
+    const toAdd = aiSuggestions.filter((_, i) => selectedSuggestions.has(i));
+    try {
+      for (const item of toAdd) {
+        await new Promise<void>((resolve, reject) => {
+          createItem.mutate(
+            { jobId, data: { name: item.name, description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.unitPrice, category: item.category } },
+            { onSuccess: () => resolve(), onError: () => reject() }
+          );
+        });
+      }
+      invalidate();
+      toast({ title: `Added ${toAdd.length} items to material list` });
+      setAiSuggestions([]);
+      setSelectedSuggestions(new Set());
+    } catch {
+      toast({ title: "Some items failed to add", variant: "destructive" });
+    } finally {
+      setIsAddingSuggestions(false);
+    }
+  };
+
+  const items = matList?.items ?? [];
+  const total = matList?.subtotal ?? 0;
+
+  if (isLoading) return <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle>Material List</CardTitle>
+            <CardDescription>Track materials needed for this job</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleAiSuggest} disabled={isSuggestingAi}>
+              {isSuggestingAi ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-purple-500" />}
+              AI Suggest
+            </Button>
+            <Button size="sm" onClick={() => setAddingRow(true)} disabled={addingRow}>
+              <Plus className="w-4 h-4 mr-2" /> Add Item
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {items.length === 0 && !addingRow && aiSuggestions.length === 0 ? (
+            <div className="text-center py-12 border-t border-dashed bg-muted/10 rounded-b-lg">
+              <ListTodo className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
+              <h3 className="text-base font-medium mb-1">No materials yet</h3>
+              <p className="text-muted-foreground text-sm mb-4">Add items manually or let AI suggest a list.</p>
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" size="sm" onClick={() => setAddingRow(true)}><Plus className="w-4 h-4 mr-1" /> Add Item</Button>
+                <Button size="sm" variant="secondary" onClick={handleAiSuggest} disabled={isSuggestingAi}>
+                  <Sparkles className="w-4 h-4 mr-1 text-purple-500" /> AI Suggest
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <table className="w-full text-sm">
+                <thead className="border-t">
+                  <tr className="text-left text-muted-foreground">
+                    <th className="px-4 py-2 font-medium">Item</th>
+                    <th className="px-4 py-2 font-medium text-right w-20">Qty</th>
+                    <th className="px-4 py-2 font-medium w-20">Unit</th>
+                    <th className="px-4 py-2 font-medium text-right w-28">Unit Price</th>
+                    <th className="px-4 py-2 font-medium text-right w-28">Total</th>
+                    <th className="px-4 py-2 w-16" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {items.map((item) =>
+                    editingId === item.id ? (
+                      <tr key={item.id} className="bg-muted/30">
+                        <td className="px-2 py-1"><Input value={editRow.name} onChange={e => setEditRow(r => ({ ...r, name: e.target.value }))} className="h-7 text-sm" /></td>
+                        <td className="px-2 py-1"><Input value={editRow.quantity} onChange={e => setEditRow(r => ({ ...r, quantity: e.target.value }))} className="h-7 text-sm text-right w-16" /></td>
+                        <td className="px-2 py-1"><Input value={editRow.unit} onChange={e => setEditRow(r => ({ ...r, unit: e.target.value }))} className="h-7 text-sm w-16" /></td>
+                        <td className="px-2 py-1"><Input value={editRow.unitPrice} onChange={e => setEditRow(r => ({ ...r, unitPrice: e.target.value }))} className="h-7 text-sm text-right w-24" /></td>
+                        <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(editRow.quantity) || 0) * (parseFloat(editRow.unitPrice) || 0))}</td>
+                        <td className="px-2 py-1">
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSaveEdit(item.id)}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="w-3.5 h-3.5" /></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={item.id} className="hover:bg-muted/20 cursor-pointer group" onClick={() => { setEditingId(item.id); setEditRow({ name: item.name, quantity: String(item.quantity ?? 1), unit: item.unit ?? "ea", unitPrice: String(item.unitPrice ?? 0), category: item.category ?? "" }); }}>
+                        <td className="px-4 py-2.5">
+                          <div className="font-medium">{item.name}</div>
+                          {item.category && <div className="text-xs text-muted-foreground">{item.category}</div>}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">{item.quantity}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{item.unit}</td>
+                        <td className="px-4 py-2.5 text-right">{formatCurrency(Number(item.unitPrice ?? 0))}</td>
+                        <td className="px-4 py-2.5 text-right font-medium">{formatCurrency(Number(item.quantity ?? 0) * Number(item.unitPrice ?? 0))}</td>
+                        <td className="px-2 py-2.5">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={e => { e.stopPropagation(); handleDelete(item.id); }}>
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                  {addingRow && (
+                    <tr className="bg-blue-50/50 dark:bg-blue-950/20">
+                      <td className="px-2 py-1"><Input autoFocus placeholder="Item name" value={newRow.name} onChange={e => setNewRow(r => ({ ...r, name: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") handleAddItem(); if (e.key === "Escape") setAddingRow(false); }} className="h-7 text-sm" /></td>
+                      <td className="px-2 py-1"><Input value={newRow.quantity} onChange={e => setNewRow(r => ({ ...r, quantity: e.target.value }))} className="h-7 text-sm text-right w-16" /></td>
+                      <td className="px-2 py-1"><Input value={newRow.unit} onChange={e => setNewRow(r => ({ ...r, unit: e.target.value }))} className="h-7 text-sm w-16" /></td>
+                      <td className="px-2 py-1"><Input placeholder="0.00" value={newRow.unitPrice} onChange={e => setNewRow(r => ({ ...r, unitPrice: e.target.value }))} className="h-7 text-sm text-right w-24" /></td>
+                      <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(newRow.quantity) || 0) * (parseFloat(newRow.unitPrice) || 0))}</td>
+                      <td className="px-2 py-1">
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleAddItem} disabled={!newRow.name.trim()}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingRow(false); setNewRow(EMPTY_NEW_ITEM); }}><X className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {(items.length > 0 || addingRow) && (
+                  <tfoot className="border-t bg-muted/20">
+                    <tr>
+                      <td colSpan={4} className="px-4 py-2.5 text-sm font-semibold text-right text-muted-foreground">Total</td>
+                      <td className="px-4 py-2.5 text-right font-bold">{formatCurrency(Number(total))}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {aiSuggestions.length > 0 && (
+        <Card className="border-purple-200 dark:border-purple-800">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                <CardTitle className="text-base">AI Suggested Materials</CardTitle>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelectedSuggestions(new Set(aiSuggestions.map((_, i) => i)))}>Select All</Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedSuggestions(new Set())}>None</Button>
+                <Button size="sm" onClick={handleAddSelectedSuggestions} disabled={selectedSuggestions.size === 0 || isAddingSuggestions}>
+                  {isAddingSuggestions ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                  Add {selectedSuggestions.size > 0 ? selectedSuggestions.size : ""} Selected
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setAiSuggestions([])}><X className="w-4 h-4" /></Button>
+              </div>
+            </div>
+            {aiDisclaimer && <p className="text-xs text-muted-foreground mt-1">{aiDisclaimer}</p>}
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead className="border-t">
+                <tr className="text-left text-muted-foreground">
+                  <th className="px-4 py-2 w-8" />
+                  <th className="px-4 py-2 font-medium">Item</th>
+                  <th className="px-4 py-2 font-medium text-right w-20">Qty</th>
+                  <th className="px-4 py-2 font-medium w-20">Unit</th>
+                  <th className="px-4 py-2 font-medium text-right w-28">Unit Price</th>
+                  <th className="px-4 py-2 font-medium text-right w-28">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {aiSuggestions.map((item, i) => (
+                  <tr key={i} className={`cursor-pointer transition-colors ${selectedSuggestions.has(i) ? "bg-purple-50/50 dark:bg-purple-950/20" : "opacity-50"}`} onClick={() => setSelectedSuggestions(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; })}>
+                    <td className="px-4 py-2.5">
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${selectedSuggestions.has(i) ? "bg-purple-500 border-purple-500" : "border-muted-foreground"}`}>
+                        {selectedSuggestions.has(i) && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{item.name}</div>
+                      {item.category && <div className="text-xs text-muted-foreground">{item.category}</div>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">{item.quantity}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{item.unit}</td>
+                    <td className="px-4 py-2.5 text-right">{formatCurrency(item.unitPrice)}</td>
+                    <td className="px-4 py-2.5 text-right font-medium">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t bg-muted/20">
+                <tr>
+                  <td colSpan={5} className="px-4 py-2.5 text-sm font-semibold text-right text-muted-foreground">Suggested Total</td>
+                  <td className="px-4 py-2.5 text-right font-bold">{formatCurrency(aiSuggestions.filter((_, i) => selectedSuggestions.has(i)).reduce((s, item) => s + item.quantity * item.unitPrice, 0))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 export default function JobDetail() {
   const [, params] = useRoute("/jobs/:id");
@@ -194,23 +509,7 @@ export default function JobDetail() {
         </TabsContent>
         
         <TabsContent value="materials" className="pt-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Material List</CardTitle>
-                <CardDescription>Track materials needed for this job</CardDescription>
-              </div>
-              <Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Item</Button>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
-                <ListTodo className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
-                <h3 className="text-lg font-medium mb-1">No materials added yet</h3>
-                <p className="text-muted-foreground text-sm mb-4">Create a material list to track costs and prepare estimates.</p>
-                <Button variant="outline">Add First Item</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <MaterialsTab jobId={id} jobTitle={job.title} jobDescription={job.description} />
         </TabsContent>
 
         <TabsContent value="estimates" className="pt-4 space-y-6">

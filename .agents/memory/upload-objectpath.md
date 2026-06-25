@@ -1,13 +1,10 @@
 ---
-name: Object upload objectPath source
-description: Where to read the storage objectPath in the Uppy ObjectUploader flow
+name: Object storage upload objectPath
+description: objectPath must come from POST /api/storage/uploads/request-url, not the GCS PUT response
 ---
 
-When using `@workspace/object-storage-web` `ObjectUploader` (Uppy + AwsS3, presigned PUT to GCS):
+The GCS PUT response body is empty. The correct objectPath is returned in the JSON response of `POST /api/storage/uploads/request-url` as `{ uploadURL, objectPath }`.
 
-- The presigned PUT goes directly to Google Cloud Storage, which returns an **empty body**. So `result.successful[0].response?.body?.objectPath` in `onComplete` is **always undefined** — do not read objectPath there.
-- The `objectPath` is returned by `POST /api/storage/uploads/request-url` alongside `uploadURL`. Capture it in `onGetUploadParameters` (store in a `useRef`) and read the ref in `onComplete`.
+**Why:** GCS PUT returns 200 with no body; the objectPath is only known before the upload (it's the path we generate server-side).
 
-**Why:** A bug where the logo never displayed after upload traced to reading objectPath from the GCS PUT response. The fix saves logoUrl as `/api/storage${objectPath}`.
-
-**How to apply:** For single-file uploads a single `lastObjectPathRef` ref is fine. If `maxNumberOfFiles > 1`, switch to a per-file map keyed by Uppy `file.id` to avoid mix-ups under concurrent uploads.
+**How to apply:** Always store `objectPath` from the request-url response before initiating the upload. Use a ref (`lastObjectPathRef`) to carry it into the `onComplete` callback.

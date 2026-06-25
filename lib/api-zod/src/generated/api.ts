@@ -1392,6 +1392,53 @@ export const DeleteEventParams = zod.object({
 
 
 /**
+ * @summary Generate AI line-item estimate from job description and photos
+ */
+export const AiQuoteEstimateBody = zod.object({
+  "jobId": zod.number().nullish(),
+  "jobDescription": zod.string(),
+  "photos": zod.array(zod.string()).optional(),
+  "zipCode": zod.string().nullish(),
+  "mode": zod.enum(['labor_only', 'labor_and_materials']).optional()
+})
+
+export const AiQuoteEstimateResponse = zod.object({
+  "items": zod.array(zod.object({
+  "description": zod.string(),
+  "qty": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "unitPrice": zod.number().nullish(),
+  "hours": zod.number().nullish(),
+  "hourlyRate": zod.number().nullish(),
+  "section": zod.enum(['labor', 'material', 'equipment', 'other'])
+})),
+  "disclaimer": zod.string()
+})
+
+
+/**
+ * @summary Generate AI material suggestions for a job
+ */
+export const AiSuggestMaterialsBody = zod.object({
+  "jobId": zod.number().nullish(),
+  "jobDescription": zod.string(),
+  "zipCode": zod.string().nullish()
+})
+
+export const AiSuggestMaterialsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "unitPrice": zod.number(),
+  "category": zod.string().nullish()
+})),
+  "disclaimer": zod.string()
+})
+
+
+/**
  * @summary Request a presigned URL for file upload
  */
 export const RequestUploadUrlBody = zod.object({

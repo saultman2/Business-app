@@ -1,2 +1,4 @@
-- [Object upload objectPath source](upload-objectpath.md) — capture objectPath from request-url response, NOT the empty GCS PUT response in Uppy onComplete.
-- [Multi-tenant scoping rules](multitenancy.md) — every query + leftJoin + FK reference must be companyId-scoped; client-supplied FK ids must be ownership-checked.
+- [Zod in api-server](zod-api-server.md) — zod must be listed in api-server dependencies; it isn't inherited from workspace libs
+- [OpenAI types in routes](openai-types-routes.md) — use inline types instead of OpenAI namespace (e.g. OpenAI.ChatCompletionContentPart) to avoid needing openai as a direct dep
+- [Multitenancy](multitenancy.md) — companyId always from req.companyId, never request body; all queries scoped by companyId
+- [Upload objectPath](upload-objectpath.md) — objectPath must come from POST /api/storage/uploads/request-url, not GCS PUT response

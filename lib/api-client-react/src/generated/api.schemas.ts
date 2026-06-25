@@ -773,6 +773,78 @@ export interface UploadUrlResponse {
   objectPath: string;
 }
 
+export type AiLineItemSection = typeof AiLineItemSection[keyof typeof AiLineItemSection];
+
+
+export const AiLineItemSection = {
+  labor: 'labor',
+  material: 'material',
+  equipment: 'equipment',
+  other: 'other',
+} as const;
+
+export interface AiLineItem {
+  description: string;
+  /** @nullable */
+  qty?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  unitPrice?: number | null;
+  /** @nullable */
+  hours?: number | null;
+  /** @nullable */
+  hourlyRate?: number | null;
+  section: AiLineItemSection;
+}
+
+export type AiQuoteEstimateInputMode = typeof AiQuoteEstimateInputMode[keyof typeof AiQuoteEstimateInputMode];
+
+
+export const AiQuoteEstimateInputMode = {
+  labor_only: 'labor_only',
+  labor_and_materials: 'labor_and_materials',
+} as const;
+
+export interface AiQuoteEstimateInput {
+  /** @nullable */
+  jobId?: number | null;
+  jobDescription: string;
+  photos?: string[];
+  /** @nullable */
+  zipCode?: string | null;
+  mode?: AiQuoteEstimateInputMode;
+}
+
+export interface AiQuoteEstimateResult {
+  items: AiLineItem[];
+  disclaimer: string;
+}
+
+export interface AiSuggestMaterialsInput {
+  /** @nullable */
+  jobId?: number | null;
+  jobDescription: string;
+  /** @nullable */
+  zipCode?: string | null;
+}
+
+export interface AiMaterialItem {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  /** @nullable */
+  category?: string | null;
+}
+
+export interface AiSuggestMaterialsResult {
+  items: AiMaterialItem[];
+  disclaimer: string;
+}
+
 export type ListClientsParams = {
 search?: string;
 };

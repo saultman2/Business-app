@@ -6,6 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './aiLineItem';
+export * from './aiLineItemSection';
+export * from './aiMaterialItem';
+export * from './aiQuoteEstimateInput';
+export * from './aiQuoteEstimateInputMode';
+export * from './aiQuoteEstimateResult';
+export * from './aiSuggestMaterialsInput';
+export * from './aiSuggestMaterialsResult';
 export * from './calendarEvent';
 export * from './calendarEventInput';
 export * from './calendarEventUpdate';
