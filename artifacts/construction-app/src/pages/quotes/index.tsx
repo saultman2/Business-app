@@ -727,7 +727,7 @@ export default function QuotesPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-9 w-9"
+                              className="h-11 w-11"
                               title="Edit estimate"
                               onClick={() => (window.location.href = `/jobs/${est.jobId ?? 0}/estimate?estimateId=${est.id}`)}
                             >

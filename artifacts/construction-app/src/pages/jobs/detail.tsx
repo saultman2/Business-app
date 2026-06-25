@@ -532,9 +532,9 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                         <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(editRow.quantity) || 0) * (parseFloat(editRow.unitPrice) || 0))}</td>
                         <td className="px-2 py-1">
                           <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-9 w-9" title="Check price" onClick={() => handleCheckPrice(item.id, editRow.name, editRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => handleSaveEdit(item.id)}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
-                            <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setEditingId(null)}><X className="w-3.5 h-3.5" /></Button>
+                            <Button size="icon" variant="ghost" className="h-11 w-11" title="Check price" onClick={() => handleCheckPrice(item.id, editRow.name, editRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
+                            <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => handleSaveEdit(item.id)}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
+                            <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => setEditingId(null)}><X className="w-3.5 h-3.5" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -568,9 +568,9 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                       <td className="px-4 py-1 text-right text-muted-foreground">{formatCurrency((parseFloat(newRow.quantity) || 0) * (parseFloat(newRow.unitPrice) || 0))}</td>
                       <td className="px-2 py-1">
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-9 w-9" title="Check price" onClick={() => handleCheckPrice("new", newRow.name, newRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
-                          <Button size="icon" variant="ghost" className="h-9 w-9" onClick={handleAddItem} disabled={!newRow.name.trim()}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
-                          <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => { setAddingRow(false); setNewRow(EMPTY_NEW_ITEM); }}><X className="w-3.5 h-3.5" /></Button>
+                          <Button size="icon" variant="ghost" className="h-11 w-11" title="Check price" onClick={() => handleCheckPrice("new", newRow.name, newRow.unit)}><Tag className="w-3.5 h-3.5 text-emerald-600" /></Button>
+                          <Button size="icon" variant="ghost" className="h-11 w-11" onClick={handleAddItem} disabled={!newRow.name.trim()}><Check className="w-3.5 h-3.5 text-green-600" /></Button>
+                          <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => { setAddingRow(false); setNewRow(EMPTY_NEW_ITEM); }}><X className="w-3.5 h-3.5" /></Button>
                         </div>
                       </td>
                     </tr>
@@ -608,7 +608,7 @@ function MaterialsTab({ jobId, jobTitle, jobDescription, approvedEstimateId }: {
                   {isAddingSuggestions ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
                   Add {selectedSuggestions.size > 0 ? selectedSuggestions.size : ""} Selected
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setAiSuggestions([])}><X className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => setAiSuggestions([])}><X className="w-4 h-4" /></Button>
               </div>
             </div>
             {aiDisclaimer && <p className="text-xs text-muted-foreground mt-1">{aiDisclaimer}</p>}
