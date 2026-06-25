@@ -49,6 +49,59 @@ interface NewItemRow {
 
 const EMPTY_NEW_ITEM: NewItemRow = { name: "", quantity: "1", unit: "ea", unitPrice: "", category: "" };
 
+function JobEstimatesCard({ jobId }: { jobId: number }) {
+  const { data: estimates } = useListEstimates({ jobId });
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Estimates</CardTitle>
+          <CardDescription>Estimates sent to client</CardDescription>
+        </div>
+        <Link href={`/quotes?jobId=${jobId}`}>
+          <Button size="sm"><Plus className="w-4 h-4 mr-2" /> New Estimate</Button>
+        </Link>
+      </CardHeader>
+      <CardContent>
+        {!estimates || estimates.length === 0 ? (
+          <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
+            <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-20" />
+            <p className="text-muted-foreground text-sm mb-3">No estimates created yet.</p>
+            <Link href={`/quotes?jobId=${jobId}`}>
+              <Button size="sm" variant="outline"><Plus className="w-3.5 h-3.5 mr-1.5" /> Create AI Quote</Button>
+            </Link>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-muted-foreground text-xs uppercase">
+                <th className="px-3 py-2 text-left">Title</th>
+                <th className="px-3 py-2 text-right">Total</th>
+                <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {estimates.map(est => (
+                <tr key={est.id} className="hover:bg-muted/20">
+                  <td className="px-3 py-2.5 font-medium">{est.title}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{formatCurrency(est.total)}</td>
+                  <td className="px-3 py-2.5">
+                    <Badge variant={est.status === "approved" ? "default" : "outline"} className="text-xs capitalize">
+                      {est.status}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{formatDate(est.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function MaterialsTab({ jobId, jobTitle, jobDescription }: { jobId: number; jobTitle: string; jobDescription?: string | null }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -406,7 +459,7 @@ export default function JobDetail() {
               <SelectItem value="paid">Paid</SelectItem>
             </SelectContent>
           </Select>
-          <Link href={`/jobs/${job.id}/estimate`}>
+          <Link href={`/quotes?jobId=${job.id}`}>
             <Button><Plus className="w-4 h-4 mr-2" /> Create Estimate</Button>
           </Link>
         </div>
@@ -513,23 +566,8 @@ export default function JobDetail() {
         </TabsContent>
 
         <TabsContent value="estimates" className="pt-4 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Estimates</CardTitle>
-                <CardDescription>Estimates sent to client</CardDescription>
-              </div>
-              <Link href={`/jobs/${id}/estimate`}>
-                <Button size="sm"><Plus className="w-4 h-4 mr-2" /> New Estimate</Button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 border border-dashed rounded-lg bg-muted/10">
-                <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-20" />
-                <p className="text-muted-foreground text-sm">No estimates created yet.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <JobEstimatesCard jobId={id} />
+
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

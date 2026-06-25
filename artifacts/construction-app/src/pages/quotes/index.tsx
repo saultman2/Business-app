@@ -46,7 +46,7 @@ function estimateStatusBadge(status: string) {
   }
 }
 
-function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void; onSaved: () => void; initialJobId?: number | null }) {
   const { data: jobs } = useListJobs({});
   const { data: clients } = useListClients({});
   const { data: company } = useGetCompany();
@@ -57,7 +57,7 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const { toast } = useToast();
 
   const [step, setStep] = useState<"form" | "result">("form");
-  const [jobId, setJobId] = useState<number | null>(null);
+  const [jobId, setJobId] = useState<number | null>(initialJobId ?? null);
   const [clientId, setClientId] = useState<number | null>(null);
   const [mode, setMode] = useState<EstimateMode>("labor_and_materials");
   const [description, setDescription] = useState("");
@@ -556,7 +556,8 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 export default function QuotesPage() {
   const { data: estimates, isLoading } = useListEstimates({});
   const queryClient = useQueryClient();
-  const [showNew, setShowNew] = useState(false);
+  const preselectedJobId = new URLSearchParams(window.location.search).get("jobId");
+  const [showNew, setShowNew] = useState(() => !!preselectedJobId);
   const [search, setSearch] = useState("");
 
   const filtered = estimates?.filter(e =>
@@ -592,7 +593,7 @@ export default function QuotesPage() {
               <Sparkles className="w-5 h-5 text-[#2563eb]" /> AI Estimate Generator
             </h2>
           </div>
-          <NewQuotePanel onClose={() => setShowNew(false)} onSaved={handleSaved} />
+          <NewQuotePanel onClose={() => setShowNew(false)} onSaved={handleSaved} initialJobId={preselectedJobId ? parseInt(preselectedJobId) : null} />
         </div>
       ) : (
         <>
@@ -631,7 +632,7 @@ export default function QuotesPage() {
                   </thead>
                   <tbody className="divide-y">
                     {filtered.map(est => (
-                      <tr key={est.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => window.location.href = `/jobs/${est.jobId}/estimate`}>
+                      <tr key={est.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => est.jobId ? (window.location.href = `/jobs/${est.jobId}/estimate`) : undefined}>
                         <td className="px-4 py-3 font-medium">{est.title}</td>
                         <td className="px-4 py-3 text-muted-foreground">{est.clientName || "Not Assigned"}</td>
                         <td className="px-4 py-3">{formatCurrency(est.total)}</td>
