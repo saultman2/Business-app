@@ -19,6 +19,10 @@ export const invoicesTable = pgTable("invoices", {
   balanceDue: numeric("balance_due", { precision: 12, scale: 2 }).notNull().default("0"),
   status: text("status").notNull().default("unpaid"),
   notes: text("notes"),
+  lineItemsJson: text("line_items_json"),
+  servicesDescription: text("services_description"),
+  paymentTerms: text("payment_terms"),
+  template: text("template").notNull().default("clean"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

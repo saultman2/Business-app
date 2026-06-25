@@ -1117,6 +1117,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiSuggestMaterialsResult"
 
+  /ai/invoice-description:
+    post:
+      operationId: aiInvoiceDescription
+      tags: [ai]
+      summary: Generate a professional services description and payment terms for an invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiInvoiceDescriptionInput"
+      responses:
+        "200":
+          description: AI-generated invoice description and payment terms
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiInvoiceDescriptionResult"
+
   # ──────────────────────────────────────
   # STORAGE
   # ──────────────────────────────────────
@@ -1944,7 +1963,7 @@ components:
 
     Invoice:
       type: object
-      required: [id, totalAmount, amountPaid, balanceDue, status, createdAt]
+      required: [id, totalAmount, amountPaid, balanceDue, status, template, createdAt]
       properties:
         id:
           type: integer
@@ -1974,6 +1993,14 @@ components:
           type: string
         notes:
           type: [string, "null"]
+        lineItemsJson:
+          type: [string, "null"]
+        servicesDescription:
+          type: [string, "null"]
+        paymentTerms:
+          type: [string, "null"]
+        template:
+          type: string
         createdAt:
           type: string
 
@@ -2007,6 +2034,14 @@ components:
           type: [number, string]
         notes:
           type: [string, "null"]
+        lineItemsJson:
+          type: [string, "null"]
+        servicesDescription:
+          type: [string, "null"]
+        paymentTerms:
+          type: [string, "null"]
+        template:
+          type: string
 
     InvoiceUpdate:
       type: object
@@ -2027,6 +2062,14 @@ components:
           type: string
         notes:
           type: [string, "null"]
+        lineItemsJson:
+          type: [string, "null"]
+        servicesDescription:
+          type: [string, "null"]
+        paymentTerms:
+          type: [string, "null"]
+        template:
+          type: string
 
     Payment:
       type: object
@@ -2340,4 +2383,42 @@ components:
           items:
             $ref: "#/components/schemas/AiMaterialItem"
         disclaimer:
+          type: string
+
+    AiInvoiceDescriptionInput:
+      type: object
+      required: [jobTitle]
+      properties:
+        jobId:
+          type: [integer, "null"]
+        jobTitle:
+          type: string
+        jobType:
+          type: [string, "null"]
+        notes:
+          type: [string, "null"]
+        lineItems:
+          type: array
+          items:
+            type: object
+            required: [description, amount]
+            properties:
+              description:
+                type: string
+              quantity:
+                type: [number, "null"]
+              unit:
+                type: [string, "null"]
+              unitPrice:
+                type: [number, "null"]
+              amount:
+                type: number
+
+    AiInvoiceDescriptionResult:
+      type: object
+      required: [servicesDescription, paymentTerms]
+      properties:
+        servicesDescription:
+          type: string
+        paymentTerms:
           type: string

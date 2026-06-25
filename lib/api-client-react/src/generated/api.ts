@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiInvoiceDescriptionInput,
+  AiInvoiceDescriptionResult,
   AiQuoteEstimateInput,
   AiQuoteEstimateResult,
   AiSuggestMaterialsInput,
@@ -4080,6 +4082,77 @@ export const useAiSuggestMaterials = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAiSuggestMaterialsMutationOptions(options));
+    }
+
+export const getAiInvoiceDescriptionUrl = () => {
+
+
+
+
+  return `/api/ai/invoice-description`
+}
+
+/**
+ * @summary Generate a professional services description and payment terms for an invoice
+ */
+export const aiInvoiceDescription = async (aiInvoiceDescriptionInput: AiInvoiceDescriptionInput, options?: RequestInit): Promise<AiInvoiceDescriptionResult> => {
+
+  return customFetch<AiInvoiceDescriptionResult>(getAiInvoiceDescriptionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiInvoiceDescriptionInput,)
+  }
+);}
+
+
+
+
+export const getAiInvoiceDescriptionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDescription>>, TError,{data: BodyType<AiInvoiceDescriptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDescription>>, TError,{data: BodyType<AiInvoiceDescriptionInput>}, TContext> => {
+
+const mutationKey = ['aiInvoiceDescription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiInvoiceDescription>>, {data: BodyType<AiInvoiceDescriptionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiInvoiceDescription(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiInvoiceDescriptionMutationResult = NonNullable<Awaited<ReturnType<typeof aiInvoiceDescription>>>
+    export type AiInvoiceDescriptionMutationBody = BodyType<AiInvoiceDescriptionInput>
+    export type AiInvoiceDescriptionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a professional services description and payment terms for an invoice
+ */
+export const useAiInvoiceDescription = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiInvoiceDescription>>, TError,{data: BodyType<AiInvoiceDescriptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiInvoiceDescription>>,
+        TError,
+        {data: BodyType<AiInvoiceDescriptionInput>},
+        TContext
+      > => {
+      return useMutation(getAiInvoiceDescriptionMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

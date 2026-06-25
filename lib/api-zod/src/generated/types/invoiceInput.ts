@@ -22,4 +22,11 @@ export interface InvoiceInput {
   totalAmount?: number | string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  lineItemsJson?: string | null;
+  /** @nullable */
+  servicesDescription?: string | null;
+  /** @nullable */
+  paymentTerms?: string | null;
+  template?: string;
 }

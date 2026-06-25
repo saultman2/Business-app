@@ -998,6 +998,10 @@ export const ListInvoicesResponseItem = zod.object({
   "balanceDue": zod.number(),
   "status": zod.string(),
   "notes": zod.string().nullish(),
+  "lineItemsJson": zod.string().nullish(),
+  "servicesDescription": zod.string().nullish(),
+  "paymentTerms": zod.string().nullish(),
+  "template": zod.string(),
   "createdAt": zod.string()
 })
 export const ListInvoicesResponse = zod.array(ListInvoicesResponseItem)
@@ -1014,7 +1018,11 @@ export const CreateInvoiceBody = zod.object({
   "invoiceDate": zod.string().nullish(),
   "dueDate": zod.string().nullish(),
   "totalAmount": zod.union([zod.number(),zod.string()]).optional(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "lineItemsJson": zod.string().nullish(),
+  "servicesDescription": zod.string().nullish(),
+  "paymentTerms": zod.string().nullish(),
+  "template": zod.string().optional()
 })
 
 
@@ -1040,6 +1048,10 @@ export const GetInvoiceResponse = zod.object({
   "balanceDue": zod.number(),
   "status": zod.string(),
   "notes": zod.string().nullish(),
+  "lineItemsJson": zod.string().nullish(),
+  "servicesDescription": zod.string().nullish(),
+  "paymentTerms": zod.string().nullish(),
+  "template": zod.string(),
   "createdAt": zod.string()
 }).and(zod.object({
   "payments": zod.array(zod.object({
@@ -1069,7 +1081,11 @@ export const UpdateInvoiceBody = zod.object({
   "dueDate": zod.string().nullish(),
   "totalAmount": zod.union([zod.number(),zod.string()]).optional(),
   "status": zod.string().optional(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "lineItemsJson": zod.string().nullish(),
+  "servicesDescription": zod.string().nullish(),
+  "paymentTerms": zod.string().nullish(),
+  "template": zod.string().optional()
 })
 
 export const UpdateInvoiceResponse = zod.object({
@@ -1087,6 +1103,10 @@ export const UpdateInvoiceResponse = zod.object({
   "balanceDue": zod.number(),
   "status": zod.string(),
   "notes": zod.string().nullish(),
+  "lineItemsJson": zod.string().nullish(),
+  "servicesDescription": zod.string().nullish(),
+  "paymentTerms": zod.string().nullish(),
+  "template": zod.string(),
   "createdAt": zod.string()
 }).and(zod.object({
   "payments": zod.array(zod.object({
@@ -1435,6 +1455,29 @@ export const AiSuggestMaterialsResponse = zod.object({
   "category": zod.string().nullish()
 })),
   "disclaimer": zod.string()
+})
+
+
+/**
+ * @summary Generate a professional services description and payment terms for an invoice
+ */
+export const AiInvoiceDescriptionBody = zod.object({
+  "jobId": zod.number().nullish(),
+  "jobTitle": zod.string(),
+  "jobType": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "lineItems": zod.array(zod.object({
+  "description": zod.string(),
+  "quantity": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "unitPrice": zod.number().nullish(),
+  "amount": zod.number()
+})).optional()
+})
+
+export const AiInvoiceDescriptionResponse = zod.object({
+  "servicesDescription": zod.string(),
+  "paymentTerms": zod.string()
 })
 
 

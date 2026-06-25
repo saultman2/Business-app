@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './aiInvoiceDescriptionInput';
+export * from './aiInvoiceDescriptionInputLineItemsItem';
+export * from './aiInvoiceDescriptionResult';
 export * from './aiLineItem';
 export * from './aiLineItemSection';
 export * from './aiMaterialItem';

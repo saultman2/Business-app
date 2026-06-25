@@ -19,6 +19,7 @@ import CalendarPage from "@/pages/calendar/index";
 import SettingsPage from "@/pages/settings";
 import InvoicesPage from "@/pages/invoices/index";
 import InvoiceDetail from "@/pages/invoices/detail";
+import NewInvoicePage from "@/pages/invoices/new";
 import QuotesPage from "@/pages/quotes/index";
 import NotFound from "@/pages/not-found";
 
@@ -145,6 +146,7 @@ function ProtectedRoutes() {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/quotes" component={QuotesPage} />
         <Route path="/invoices" component={InvoicesPage} />
+        <Route path="/invoices/new" component={NewInvoicePage} />
         <Route path="/invoices/:id" component={InvoiceDetail} />
         <Route component={NotFound} />
       </Switch>

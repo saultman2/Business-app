@@ -141,6 +141,10 @@ router.post("/invoices", async (req, res): Promise<void> => {
       totalAmount: String(total),
       balanceDue: String(total),
       notes: d.notes,
+      lineItemsJson: d.lineItemsJson ?? null,
+      servicesDescription: d.servicesDescription ?? null,
+      paymentTerms: d.paymentTerms ?? null,
+      template: d.template ?? "clean",
     })
     .returning();
   res.status(201).json(serializeInvoice(invoice));
@@ -213,6 +217,10 @@ router.patch("/invoices/:id", async (req, res): Promise<void> => {
       balanceDue: String(balanceDue),
       status,
       notes: d.notes,
+      ...(d.lineItemsJson !== undefined && { lineItemsJson: d.lineItemsJson }),
+      ...(d.servicesDescription !== undefined && { servicesDescription: d.servicesDescription }),
+      ...(d.paymentTerms !== undefined && { paymentTerms: d.paymentTerms }),
+      ...(d.template !== undefined && { template: d.template }),
     })
     .where(eq(invoicesTable.id, params.data.id));
   res.json(await detail(req.companyId!, params.data.id));

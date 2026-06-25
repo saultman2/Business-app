@@ -594,6 +594,13 @@ export interface Invoice {
   status: string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  lineItemsJson?: string | null;
+  /** @nullable */
+  servicesDescription?: string | null;
+  /** @nullable */
+  paymentTerms?: string | null;
+  template: string;
   createdAt: string;
 }
 
@@ -629,6 +636,13 @@ export interface InvoiceInput {
   totalAmount?: number | string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  lineItemsJson?: string | null;
+  /** @nullable */
+  servicesDescription?: string | null;
+  /** @nullable */
+  paymentTerms?: string | null;
+  template?: string;
 }
 
 export interface InvoiceUpdate {
@@ -646,6 +660,13 @@ export interface InvoiceUpdate {
   status?: string;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  lineItemsJson?: string | null;
+  /** @nullable */
+  servicesDescription?: string | null;
+  /** @nullable */
+  paymentTerms?: string | null;
+  template?: string;
 }
 
 export interface PaymentInput {
@@ -843,6 +864,33 @@ export interface AiMaterialItem {
 export interface AiSuggestMaterialsResult {
   items: AiMaterialItem[];
   disclaimer: string;
+}
+
+export type AiInvoiceDescriptionInputLineItemsItem = {
+  description: string;
+  /** @nullable */
+  quantity?: number | null;
+  /** @nullable */
+  unit?: string | null;
+  /** @nullable */
+  unitPrice?: number | null;
+  amount: number;
+};
+
+export interface AiInvoiceDescriptionInput {
+  /** @nullable */
+  jobId?: number | null;
+  jobTitle: string;
+  /** @nullable */
+  jobType?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  lineItems?: AiInvoiceDescriptionInputLineItemsItem[];
+}
+
+export interface AiInvoiceDescriptionResult {
+  servicesDescription: string;
+  paymentTerms: string;
 }
 
 export type ListClientsParams = {

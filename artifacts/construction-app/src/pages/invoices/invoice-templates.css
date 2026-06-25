@@ -1,0 +1,276 @@
+/* ─── Shared invoice document base ─── */
+.invoice-doc {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  padding: 48px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1e293b;
+  min-height: 900px;
+}
+
+/* ── Header layouts ── */
+.inv-header-std,
+.inv-header-bold {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 24px;
+}
+
+.inv-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.inv-company-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.inv-company-meta {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.inv-number-block {
+  text-align: right;
+}
+
+.inv-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+.inv-num-text {
+  font-size: 22px;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.inv-date-row {
+  font-size: 12px;
+}
+
+.inv-date-label {
+  opacity: 0.5;
+}
+
+/* ── Bill to row ── */
+.inv-bill-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 28px;
+}
+
+.inv-bill-to, .inv-project {
+  flex: 1;
+}
+
+.inv-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  margin-bottom: 6px;
+}
+
+.inv-client-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.inv-client-addr {
+  font-size: 12px;
+  opacity: 0.65;
+  white-space: pre-line;
+}
+
+.inv-project-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ── Services rendered ── */
+.inv-services {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.03);
+}
+
+.inv-services-text {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ── Table ── */
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+
+.inv-th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.5;
+  text-align: left;
+}
+
+.inv-th-num { width: 80px; }
+.inv-th-right, .inv-td-right { text-align: right !important; }
+.inv-th-desc { width: auto; }
+
+.inv-td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 13px;
+}
+
+.inv-td-num { text-align: right; font-variant-numeric: tabular-nums; }
+.inv-td-empty { text-align: center; opacity: 0.4; padding: 24px 0; }
+
+tfoot .inv-tf-label {
+  padding: 12px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: right;
+}
+
+tfoot .inv-tf-total {
+  padding: 12px 12px;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-top: 2px solid currentColor;
+}
+
+/* ── Payment terms / notes ── */
+.inv-payment-terms,
+.inv-notes {
+  margin-bottom: 20px;
+}
+
+.inv-payment-text,
+.inv-notes-text {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ── Footer ── */
+.inv-footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.inv-footer-text {
+  font-size: 12px;
+  opacity: 0.4;
+}
+
+/* ───────────────────────────────────────────
+   TEMPLATE: clean (default)
+─────────────────────────────────────────── */
+.template-clean {
+  border-top: 4px solid #2563eb;
+}
+
+.template-clean .inv-company-name { color: #2563eb; }
+.template-clean .inv-tf-total { color: #2563eb; border-color: #2563eb; }
+.template-clean .inv-th { border-color: #2563eb; color: #2563eb; opacity: 1; }
+.template-clean .inv-services { background: #eff6ff; }
+
+/* ───────────────────────────────────────────
+   TEMPLATE: classic
+─────────────────────────────────────────── */
+.template-classic {
+  background: #fefcf6;
+  border: 1px solid #d6c99a;
+  border-top: 4px solid #78350f;
+}
+
+.template-classic .inv-company-name { color: #78350f; font-family: Georgia, serif; }
+.template-classic .inv-label,
+.template-classic .inv-section-label { color: #78350f; opacity: 1; }
+.template-classic .inv-tf-total { color: #78350f; border-color: #78350f; }
+.template-classic .inv-th { border-color: #78350f; color: #78350f; opacity: 1; }
+.template-classic .inv-services { background: #fef3c7; border-left: 3px solid #d97706; }
+.template-classic .inv-footer { border-color: #d6c99a; }
+.template-classic .inv-td { border-color: #e8d9a0; }
+
+/* ───────────────────────────────────────────
+   TEMPLATE: bold
+─────────────────────────────────────────── */
+.template-bold {
+  padding: 0;
+  overflow: hidden;
+}
+
+.template-bold .inv-header-bold {
+  background: #1e293b;
+  color: white;
+  padding: 36px 48px;
+  margin-bottom: 0;
+}
+
+.template-bold .inv-company-name { color: #f97316; font-size: 22px; }
+.template-bold .inv-company-meta { color: rgba(255,255,255,0.6); }
+.template-bold .inv-label { color: #f97316; opacity: 1; font-size: 10px; }
+.template-bold .inv-num-text { color: white; }
+.template-bold .inv-date-row { color: rgba(255,255,255,0.7); }
+.template-bold .inv-date-label { color: rgba(255,255,255,0.45); }
+
+.template-bold .inv-bill-row,
+.template-bold .inv-services,
+.template-bold .inv-table,
+.template-bold .inv-payment-terms,
+.template-bold .inv-notes,
+.template-bold .inv-footer {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+.template-bold .inv-bill-row { padding-top: 32px; }
+
+.template-bold .inv-th { border-color: #1e293b; color: #1e293b; opacity: 1; }
+.template-bold .inv-tf-total { color: #f97316; border-color: #f97316; }
+.template-bold .inv-section-label { color: #f97316; opacity: 1; }
+.template-bold .inv-services { background: #fff7ed; border-left: 4px solid #f97316; margin: 0 48px 24px; padding: 16px; border-radius: 0; }
+
+/* ─── Print styles ─── */
+@media print {
+  .print-hide { display: none !important; }
+  .print-invoice-main {
+    padding: 0 !important;
+    background: white !important;
+  }
+  .invoice-doc {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    min-height: unset;
+  }
+}

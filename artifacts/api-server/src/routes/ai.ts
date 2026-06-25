@@ -221,4 +221,73 @@ Base prices on regional averages${zipCode ? ` for zip ${zipCode}` : ""}.`,
   res.json({ items: result.items, disclaimer: "These are rough estimates based on regional averages — review and adjust before ordering." });
 });
 
+const InvoiceDescriptionBody = z.object({
+  jobId: z.number().int().optional(),
+  jobTitle: z.string().min(1),
+  jobType: z.string().nullish(),
+  notes: z.string().nullish(),
+  lineItems: z.array(z.object({
+    description: z.string(),
+    quantity: z.number().nullish(),
+    unit: z.string().nullish(),
+    unitPrice: z.number().nullish(),
+    amount: z.number(),
+  })).default([]),
+});
+
+router.post("/ai/invoice-description", async (req, res): Promise<void> => {
+  const parsed = InvoiceDescriptionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { jobTitle, jobType, notes, lineItems } = parsed.data;
+
+  const openai = getOpenai();
+  if (!openai) {
+    res.status(503).json({ error: "AI service is not configured in this environment." });
+    return;
+  }
+
+  const lineItemsText = lineItems.length > 0
+    ? lineItems.map(i => `- ${i.description}: $${i.amount.toFixed(2)}`).join("\n")
+    : "No specific line items provided.";
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-5.4",
+    max_completion_tokens: 1024,
+    messages: [
+      {
+        role: "system",
+        content: `You are a professional invoice writer for a construction company. Generate professional invoice content.
+Respond ONLY with valid JSON: { "servicesDescription": string, "paymentTerms": string }
+- servicesDescription: 2-3 sentences describing services rendered in a professional, client-facing tone.
+- paymentTerms: A brief payment terms statement (e.g. "Net 30: Payment due within 30 days of invoice date. Late payments subject to 1.5% monthly interest.").`,
+      },
+      {
+        role: "user",
+        content: `Job title: "${jobTitle}"\nJob type: ${jobType || "General Construction"}\nNotes: ${notes || "None"}\n\nLine items:\n${lineItemsText}\n\nWrite professional invoice content for this job.`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const raw = completion.choices[0]?.message?.content ?? "{}";
+  const resultSchema = z.object({
+    servicesDescription: z.string(),
+    paymentTerms: z.string(),
+  });
+
+  let result: z.infer<typeof resultSchema>;
+  try {
+    result = resultSchema.parse(JSON.parse(raw));
+  } catch {
+    res.status(500).json({ error: "AI returned invalid response format" });
+    return;
+  }
+
+  res.json(result);
+});
+
 export default router;
