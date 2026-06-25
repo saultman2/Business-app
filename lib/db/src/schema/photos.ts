@@ -4,6 +4,8 @@ import { z } from "zod/v4";
 
 export const photoTypeEnum = ["before", "during", "after", "receipt", "material", "other"] as const;
 
+export const renderTypeEnum = ["before", "after"] as const;
+
 export const jobPhotosTable = pgTable("job_photos", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(),
@@ -12,6 +14,8 @@ export const jobPhotosTable = pgTable("job_photos", {
   imageUrl: text("image_url").notNull(),
   caption: text("caption"),
   takenAt: text("taken_at"),
+  renderType: text("render_type"),
+  pairedPhotoId: integer("paired_photo_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

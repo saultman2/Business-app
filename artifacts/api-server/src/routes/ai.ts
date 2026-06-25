@@ -1,8 +1,34 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth";
-import { db, companiesTable, jobsTable } from "@workspace/db";
+import { db, companiesTable, jobsTable, jobPhotosTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { ObjectStorageService } from "../lib/objectStorage";
+import { objectReferencedByOtherCompany } from "../lib/ownership";
+import { serializeJobPhoto } from "../lib/serialize";
+
+type ImageEditor = (
+  imageFiles: string[],
+  prompt: string,
+  outputPath?: string,
+  mimeType?: string,
+) => Promise<Buffer>;
+
+function getImageEditor(): ImageEditor | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@workspace/integrations-openai-ai-server/image") as {
+      editImages: ImageEditor;
+    };
+    return mod.editImages ?? null;
+  } catch {
+    return null;
+  }
+}
 
 type OpenAIClient = {
   chat: {
@@ -366,6 +392,153 @@ Respond ONLY with valid JSON of this exact shape:
   }
 
   res.json(result);
+});
+
+const RenderPhotoBody = z.object({
+  jobId: z.number().int(),
+  photoObjectPath: z.string().min(1),
+  caption: z.string().nullish(),
+  scopeOfWork: z.string().min(1),
+  materialsUsed: z.string().nullish(),
+  desiredOutcome: z.string().nullish(),
+});
+
+router.post("/ai/render-photo", async (req, res): Promise<void> => {
+  const parsed = RenderPhotoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { jobId, photoObjectPath, caption, scopeOfWork, materialsUsed, desiredOutcome } =
+    parsed.data;
+  const companyId = req.companyId!;
+
+  const [job] = await db
+    .select({ id: jobsTable.id })
+    .from(jobsTable)
+    .where(and(eq(jobsTable.id, jobId), eq(jobsTable.companyId, companyId)));
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+
+  const editImages = getImageEditor();
+  if (!editImages) {
+    res.status(503).json({ error: "AI image rendering is not configured in this environment." });
+    return;
+  }
+
+  // The stored imageUrl is "/api/storage/objects/<...>"; the storage service
+  // works with the "/objects/<...>" path.
+  const objectPath = photoObjectPath.replace(/^\/api\/storage/, "");
+  if (!objectPath.startsWith("/objects/")) {
+    res.status(400).json({ error: "Invalid photo path" });
+    return;
+  }
+  const beforeImageUrl = `/api/storage${objectPath}`;
+
+  // Block cross-tenant reads: if this object is already referenced by another
+  // company's record, refuse to download it. Fresh uploads (not yet referenced)
+  // are allowed and become owned by this company once the before-record is saved.
+  if (await objectReferencedByOtherCompany(companyId, beforeImageUrl)) {
+    res.status(403).json({ error: "You don't have access to that photo." });
+    return;
+  }
+
+  const promptParts = [
+    "You are a professional construction visualization artist. The supplied image is a real 'before' photo of a job site.",
+    "Generate a photorealistic 'after' image showing the completed work. Keep the exact same camera angle, perspective, framing, lighting direction, and architectural structure as the original — only change what the described work would realistically change.",
+    `Scope of work: ${scopeOfWork}.`,
+    materialsUsed ? `Materials and finishes to apply: ${materialsUsed}.` : "",
+    desiredOutcome ? `Desired final outcome: ${desiredOutcome}.` : "",
+    "The result must look like a realistic photograph of the same location after the work is finished — clean, professional, and faithful to the original space. Do not add text, watermarks, people, or logos.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const storage = new ObjectStorageService();
+  let tempPath: string | null = null;
+
+  try {
+    const file = await storage.getObjectEntityFile(objectPath);
+    const download = await storage.downloadObject(file);
+    const contentType = download.headers.get("content-type") || "image/png";
+    const arrayBuffer = await download.arrayBuffer();
+    const ext = contentType.includes("jpeg") || contentType.includes("jpg")
+      ? "jpg"
+      : contentType.includes("webp")
+        ? "webp"
+        : "png";
+    tempPath = path.join(os.tmpdir(), `render-${randomUUID()}.${ext}`);
+    fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+
+    const afterBuffer = await editImages([tempPath], promptParts, undefined, contentType);
+
+    const uploadURL = await storage.getObjectEntityUploadURL();
+    const putRes = await fetch(uploadURL, {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: new Uint8Array(afterBuffer),
+    });
+    if (!putRes.ok) {
+      req.log.error({ status: putRes.status }, "Failed to upload rendered photo");
+      res.status(500).json({ error: "Failed to store rendered photo" });
+      return;
+    }
+    const afterObjectPath = storage.normalizeObjectEntityPath(uploadURL);
+    const afterImageUrl = `/api/storage${afterObjectPath}`;
+
+    const { before, after } = await db.transaction(async (tx) => {
+      const [beforeRow] = await tx
+        .insert(jobPhotosTable)
+        .values({
+          companyId,
+          jobId,
+          type: "before",
+          imageUrl: beforeImageUrl,
+          caption: caption ?? scopeOfWork,
+          renderType: "before",
+        })
+        .returning();
+
+      const [afterRow] = await tx
+        .insert(jobPhotosTable)
+        .values({
+          companyId,
+          jobId,
+          type: "after",
+          imageUrl: afterImageUrl,
+          caption: desiredOutcome ?? "AI render",
+          renderType: "after",
+          pairedPhotoId: beforeRow.id,
+        })
+        .returning();
+
+      await tx
+        .update(jobPhotosTable)
+        .set({ pairedPhotoId: afterRow.id })
+        .where(and(eq(jobPhotosTable.id, beforeRow.id), eq(jobPhotosTable.companyId, companyId)));
+
+      return { before: beforeRow, after: afterRow };
+    });
+
+    res.json({
+      before: serializeJobPhoto({ ...before, pairedPhotoId: after.id }),
+      after: serializeJobPhoto(after),
+    });
+  } catch (err) {
+    req.log.error({ err }, "AI photo render failed");
+    res.status(500).json({ error: "Failed to generate the after render. Please try again." });
+  } finally {
+    if (tempPath) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+  }
 });
 
 export default router;

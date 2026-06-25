@@ -26,6 +26,8 @@ import type {
   AiInvoiceDesignResult,
   AiQuoteEstimateInput,
   AiQuoteEstimateResult,
+  AiRenderPhotoInput,
+  AiRenderPhotoResult,
   AiSuggestMaterialsInput,
   AiSuggestMaterialsResult,
   CalendarEvent,
@@ -4230,6 +4232,77 @@ export const useAiInvoiceDesign = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAiInvoiceDesignMutationOptions(options));
+    }
+
+export const getAiRenderPhotoUrl = () => {
+
+
+
+
+  return `/api/ai/render-photo`
+}
+
+/**
+ * @summary Generate a photorealistic after render from a before job photo
+ */
+export const aiRenderPhoto = async (aiRenderPhotoInput: AiRenderPhotoInput, options?: RequestInit): Promise<AiRenderPhotoResult> => {
+
+  return customFetch<AiRenderPhotoResult>(getAiRenderPhotoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      aiRenderPhotoInput,)
+  }
+);}
+
+
+
+
+export const getAiRenderPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiRenderPhoto>>, TError,{data: BodyType<AiRenderPhotoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiRenderPhoto>>, TError,{data: BodyType<AiRenderPhotoInput>}, TContext> => {
+
+const mutationKey = ['aiRenderPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiRenderPhoto>>, {data: BodyType<AiRenderPhotoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiRenderPhoto(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiRenderPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof aiRenderPhoto>>>
+    export type AiRenderPhotoMutationBody = BodyType<AiRenderPhotoInput>
+    export type AiRenderPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a photorealistic after render from a before job photo
+ */
+export const useAiRenderPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiRenderPhoto>>, TError,{data: BodyType<AiRenderPhotoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiRenderPhoto>>,
+        TError,
+        {data: BodyType<AiRenderPhotoInput>},
+        TContext
+      > => {
+      return useMutation(getAiRenderPhotoMutationOptions(options));
     }
 
 export const getRequestUploadUrlUrl = () => {

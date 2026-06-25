@@ -24,9 +24,11 @@ import {
   getGetEstimateQueryKey,
   useListCrew,
   useListJobPhotos,
+  useAiRenderPhoto,
   type Job,
   type JobSummary,
   type CrewMember,
+  type JobPhoto,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1146,6 +1148,197 @@ function SendToCrewDialog({
   );
 }
 
+function AiRenderDialog({
+  jobId,
+  open,
+  onOpenChange,
+}: {
+  jobId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const renderPhoto = useAiRenderPhoto();
+  const objectPathRef = useRef<string | null>(null);
+
+  const [beforeUrl, setBeforeUrl] = useState<string | null>(null);
+  const [scopeOfWork, setScopeOfWork] = useState("");
+  const [materialsUsed, setMaterialsUsed] = useState("");
+  const [desiredOutcome, setDesiredOutcome] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = () => {
+    objectPathRef.current = null;
+    setBeforeUrl(null);
+    setScopeOfWork("");
+    setMaterialsUsed("");
+    setDesiredOutcome("");
+    setError(null);
+  };
+
+  const isLoading = renderPhoto.isPending;
+  const canSubmit = !!objectPathRef.current && scopeOfWork.trim().length > 0 && !isLoading;
+
+  const handleGenerate = () => {
+    if (!objectPathRef.current || !scopeOfWork.trim()) return;
+    setError(null);
+    renderPhoto.mutate(
+      {
+        data: {
+          jobId,
+          photoObjectPath: objectPathRef.current,
+          scopeOfWork: scopeOfWork.trim(),
+          materialsUsed: materialsUsed.trim() || null,
+          desiredOutcome: desiredOutcome.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListJobPhotosQueryKey(jobId) });
+          toast({ title: "After render created" });
+          reset();
+          onOpenChange(false);
+        },
+        onError: () => {
+          setError("We couldn't generate the after render. Please try again.");
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o && isLoading) return;
+        if (!o) reset();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" /> AI Before / After Render
+          </DialogTitle>
+          <DialogDescription>
+            Upload a site photo and describe the work — AI will generate a photorealistic “after”.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Before photo</label>
+            {beforeUrl ? (
+              <div className="relative overflow-hidden rounded-lg border bg-muted/20">
+                <img src={beforeUrl} alt="Before" className="w-full max-h-56 object-cover" />
+                {!isLoading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      objectPathRef.current = null;
+                      setBeforeUrl(null);
+                    }}
+                    className="absolute top-2 right-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                    aria-label="Remove photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ObjectUploader
+                onGetUploadParameters={async (file) => {
+                  const res = await fetch("/api/storage/uploads/request-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+                  });
+                  const { uploadURL, objectPath } = await res.json();
+                  objectPathRef.current = objectPath;
+                  return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
+                }}
+                onComplete={(result) => {
+                  if (result.successful && result.successful.length > 0 && objectPathRef.current) {
+                    setBeforeUrl(`/api/storage${objectPathRef.current}`);
+                  }
+                }}
+                buttonClassName="border border-dashed w-full h-24 rounded-lg text-sm text-muted-foreground hover:bg-muted/30 inline-flex items-center justify-center"
+              >
+                <ImageIcon className="w-5 h-5 mr-2" /> Upload before photo
+              </ObjectUploader>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Scope of work *</label>
+            <Textarea
+              value={scopeOfWork}
+              onChange={(e) => setScopeOfWork(e.target.value)}
+              placeholder="e.g. Demolish old cabinets, install new shaker cabinets and quartz countertops"
+              rows={2}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Materials &amp; finishes</label>
+            <Input
+              value={materialsUsed}
+              onChange={(e) => setMaterialsUsed(e.target.value)}
+              placeholder="e.g. White oak floors, matte black fixtures"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Desired outcome</label>
+            <Input
+              value={desiredOutcome}
+              onChange={(e) => setDesiredOutcome(e.target.value)}
+              placeholder="e.g. Bright, modern farmhouse kitchen"
+              disabled={isLoading}
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Generating your after render… this can take up to a minute.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleGenerate} disabled={!canSubmit}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…
+                </>
+              ) : error ? (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" /> Retry
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" /> Generate After
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function JobDetail() {
   const [, params] = useRoute("/jobs/:id");
   const id = params?.id ? parseInt(params.id) : 0;
@@ -1163,6 +1356,7 @@ export default function JobDetail() {
 
   const approvedEstimateId = (estimates ?? []).find((e) => e.status === "approved")?.id ?? null;
   const [sendOpen, setSendOpen] = useState(false);
+  const [aiRenderOpen, setAiRenderOpen] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     updateJob.mutate(
@@ -1178,6 +1372,21 @@ export default function JobDetail() {
 
   if (jobLoading || summaryLoading) return <div className="p-6 md:p-8"><Skeleton className="h-64 w-full" /></div>;
   if (!job) return <div className="p-6 md:p-8 text-center"><h2 className="text-2xl font-bold">Job not found</h2><Link href="/jobs"><Button className="mt-4">Back to Jobs</Button></Link></div>;
+
+  const photosList: JobPhoto[] = jobPhotos ?? [];
+  const pairedIds = new Set<number>();
+  const beforeAfterPairs = photosList
+    .filter((p) => p.renderType === "after" && p.pairedPhotoId != null)
+    .map((after) => {
+      const before = photosList.find((p) => p.id === after.pairedPhotoId);
+      if (before) {
+        pairedIds.add(before.id);
+        pairedIds.add(after.id);
+      }
+      return before ? { before, after } : null;
+    })
+    .filter((x): x is { before: JobPhoto; after: JobPhoto } => x !== null);
+  const standalonePhotos = photosList.filter((p) => !pairedIds.has(p.id));
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24">
@@ -1272,42 +1481,47 @@ export default function JobDetail() {
 
         <TabsContent value="photos" className="pt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <CardTitle>Job Photos</CardTitle>
                 <CardDescription>Before, during, and after photos</CardDescription>
               </div>
-              <ObjectUploader
-                onGetUploadParameters={async (file) => {
-                  const res = await fetch("/api/storage/uploads/request-url", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
-                  });
-                  const { uploadURL, objectPath } = await res.json();
-                  lastObjectPathRef.current = objectPath;
-                  return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
-                }}
-                onComplete={async (result) => {
-                  if (result.successful && result.successful.length > 0) {
-                    const objectPath = lastObjectPathRef.current;
-                    if (objectPath) {
-                      createPhoto.mutate(
-                        { jobId: id, data: { type: "during", imageUrl: `/api/storage${objectPath}` } },
-                        {
-                          onSuccess: () => {
-                            queryClient.invalidateQueries({ queryKey: getListJobPhotosQueryKey(id) });
-                            toast({ title: "Photo uploaded" });
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setAiRenderOpen(true)}>
+                  <Sparkles className="w-4 h-4 mr-2" /> AI Render
+                </Button>
+                <ObjectUploader
+                  onGetUploadParameters={async (file) => {
+                    const res = await fetch("/api/storage/uploads/request-url", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+                    });
+                    const { uploadURL, objectPath } = await res.json();
+                    lastObjectPathRef.current = objectPath;
+                    return { method: "PUT", url: uploadURL, headers: { "Content-Type": file.type } };
+                  }}
+                  onComplete={async (result) => {
+                    if (result.successful && result.successful.length > 0) {
+                      const objectPath = lastObjectPathRef.current;
+                      if (objectPath) {
+                        createPhoto.mutate(
+                          { jobId: id, data: { type: "during", imageUrl: `/api/storage${objectPath}` } },
+                          {
+                            onSuccess: () => {
+                              queryClient.invalidateQueries({ queryKey: getListJobPhotosQueryKey(id) });
+                              toast({ title: "Photo uploaded" });
+                            }
                           }
-                        }
-                      );
+                        );
+                      }
                     }
-                  }
-                }}
-                buttonClassName="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center justify-center"
-              >
-                <Plus className="w-4 h-4 mr-2" /> Upload Photo
-              </ObjectUploader>
+                  }}
+                  buttonClassName="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md text-sm font-medium inline-flex items-center justify-center"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Upload Photo
+                </ObjectUploader>
+              </div>
             </CardHeader>
             <CardContent>
               {photosLoading ? (
@@ -1316,39 +1530,101 @@ export default function JobDetail() {
                     <Skeleton key={i} className="aspect-square w-full rounded-lg" />
                   ))}
                 </div>
-              ) : jobPhotos && jobPhotos.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {jobPhotos.map((photo) => (
-                    <a
-                      key={photo.id}
-                      href={photo.imageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/20"
-                    >
-                      <img
-                        src={photo.imageUrl}
-                        alt={photo.caption ?? `Job photo ${photo.id}`}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      {photo.caption ? (
-                        <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-xs text-white truncate">
-                          {photo.caption}
-                        </div>
-                      ) : null}
-                    </a>
-                  ))}
+              ) : photosList.length > 0 ? (
+                <div className="space-y-6">
+                  {beforeAfterPairs.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-muted-foreground">AI Before / After Renders</h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {beforeAfterPairs.map(({ before, after }) => (
+                          <div key={after.id} className="rounded-lg border overflow-hidden">
+                            <div className="grid grid-cols-2">
+                              <a
+                                href={before.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative aspect-[4/3] overflow-hidden bg-muted/20 border-r"
+                              >
+                                <img
+                                  src={before.imageUrl}
+                                  alt="Before"
+                                  loading="lazy"
+                                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                />
+                                <Badge className="absolute top-2 left-2 bg-black/70 text-white hover:bg-black/70">
+                                  Before
+                                </Badge>
+                              </a>
+                              <a
+                                href={after.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative aspect-[4/3] overflow-hidden bg-muted/20"
+                              >
+                                <img
+                                  src={after.imageUrl}
+                                  alt="After"
+                                  loading="lazy"
+                                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                />
+                                <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground hover:bg-primary">
+                                  After
+                                </Badge>
+                              </a>
+                            </div>
+                            {before.caption ? (
+                              <div className="flex items-start gap-2 px-3 py-2 text-xs text-muted-foreground border-t">
+                                <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+                                <span>{before.caption}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {standalonePhotos.length > 0 && (
+                    <div className="space-y-3">
+                      {beforeAfterPairs.length > 0 && (
+                        <h3 className="text-sm font-semibold text-muted-foreground">All Photos</h3>
+                      )}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {standalonePhotos.map((photo) => (
+                          <a
+                            key={photo.id}
+                            href={photo.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/20"
+                          >
+                            <img
+                              src={photo.imageUrl}
+                              alt={photo.caption ?? `Job photo ${photo.id}`}
+                              loading="lazy"
+                              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            {photo.caption ? (
+                              <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-xs text-white truncate">
+                                {photo.caption}
+                              </div>
+                            ) : null}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-16 border border-dashed rounded-lg bg-muted/10">
                   <ImageIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-20" />
                   <h3 className="text-lg font-medium mb-1">No photos uploaded</h3>
-                  <p className="text-muted-foreground text-sm">Document the job progress with photos.</p>
+                  <p className="text-muted-foreground text-sm">Document the job progress with photos, or use AI Render to visualize the finished result.</p>
                 </div>
               )}
             </CardContent>
           </Card>
+          <AiRenderDialog jobId={id} open={aiRenderOpen} onOpenChange={setAiRenderOpen} />
         </TabsContent>
       </Tabs>
     </div>

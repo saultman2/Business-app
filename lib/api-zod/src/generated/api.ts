@@ -1174,6 +1174,8 @@ export const ListJobPhotosResponseItem = zod.object({
   "imageUrl": zod.string(),
   "caption": zod.string().nullish(),
   "takenAt": zod.string().nullish(),
+  "renderType": zod.string().nullish(),
+  "pairedPhotoId": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListJobPhotosResponse = zod.array(ListJobPhotosResponseItem)
@@ -1214,6 +1216,8 @@ export const UpdateJobPhotoResponse = zod.object({
   "imageUrl": zod.string(),
   "caption": zod.string().nullish(),
   "takenAt": zod.string().nullish(),
+  "renderType": zod.string().nullish(),
+  "pairedPhotoId": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -1527,6 +1531,44 @@ export const AiInvoiceDesignResponse = zod.object({
   "showNotes": zod.boolean(),
   "notesText": zod.string(),
   "footerText": zod.string()
+})
+})
+
+
+/**
+ * @summary Generate a photorealistic after render from a before job photo
+ */
+export const AiRenderPhotoBody = zod.object({
+  "jobId": zod.number(),
+  "photoObjectPath": zod.string().describe('The stored imageUrl of the uploaded before photo (e.g. \/api\/storage\/objects\/uploads\/<uuid>).'),
+  "caption": zod.string().nullish(),
+  "scopeOfWork": zod.string().describe('Description of the work to be performed.'),
+  "materialsUsed": zod.string().nullish().describe('Materials and finishes to apply in the render.'),
+  "desiredOutcome": zod.string().nullish().describe('The desired final look or outcome.')
+})
+
+export const AiRenderPhotoResponse = zod.object({
+  "before": zod.object({
+  "id": zod.number(),
+  "jobId": zod.number(),
+  "type": zod.string(),
+  "imageUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "takenAt": zod.string().nullish(),
+  "renderType": zod.string().nullish(),
+  "pairedPhotoId": zod.number().nullish(),
+  "createdAt": zod.string()
+}),
+  "after": zod.object({
+  "id": zod.number(),
+  "jobId": zod.number(),
+  "type": zod.string(),
+  "imageUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "takenAt": zod.string().nullish(),
+  "renderType": zod.string().nullish(),
+  "pairedPhotoId": zod.number().nullish(),
+  "createdAt": zod.string()
 })
 })
 

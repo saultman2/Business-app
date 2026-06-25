@@ -1155,6 +1155,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiInvoiceDesignResult"
 
+  /ai/render-photo:
+    post:
+      operationId: aiRenderPhoto
+      tags: [ai]
+      summary: Generate a photorealistic after render from a before job photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiRenderPhotoInput"
+      responses:
+        "200":
+          description: A linked before/after photo pair
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiRenderPhotoResult"
+
   # ──────────────────────────────────────
   # STORAGE
   # ──────────────────────────────────────
@@ -2302,6 +2321,10 @@ components:
           type: [string, "null"]
         takenAt:
           type: [string, "null"]
+        renderType:
+          type: [string, "null"]
+        pairedPhotoId:
+          type: [integer, "null"]
         createdAt:
           type: string
 
@@ -2661,3 +2684,33 @@ components:
           description: A short conversational reply describing what changed.
         style:
           $ref: "#/components/schemas/InvoiceStyle"
+
+    AiRenderPhotoInput:
+      type: object
+      required: [jobId, photoObjectPath, scopeOfWork]
+      properties:
+        jobId:
+          type: integer
+        photoObjectPath:
+          type: string
+          description: The stored imageUrl of the uploaded before photo (e.g. /api/storage/objects/uploads/<uuid>).
+        caption:
+          type: [string, "null"]
+        scopeOfWork:
+          type: string
+          description: Description of the work to be performed.
+        materialsUsed:
+          type: [string, "null"]
+          description: Materials and finishes to apply in the render.
+        desiredOutcome:
+          type: [string, "null"]
+          description: The desired final look or outcome.
+
+    AiRenderPhotoResult:
+      type: object
+      required: [before, after]
+      properties:
+        before:
+          $ref: "#/components/schemas/JobPhoto"
+        after:
+          $ref: "#/components/schemas/JobPhoto"

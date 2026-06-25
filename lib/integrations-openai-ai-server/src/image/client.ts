@@ -35,12 +35,13 @@ export async function generateImageBuffer(
 export async function editImages(
   imageFiles: string[],
   prompt: string,
-  outputPath?: string
+  outputPath?: string,
+  mimeType: string = "image/png"
 ): Promise<Buffer> {
   const images = await Promise.all(
     imageFiles.map((file) =>
       toFile(fs.createReadStream(file), file, {
-        type: "image/png",
+        type: mimeType,
       })
     )
   );

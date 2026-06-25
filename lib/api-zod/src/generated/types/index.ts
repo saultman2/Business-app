@@ -17,6 +17,8 @@ export * from './aiMaterialItem';
 export * from './aiQuoteEstimateInput';
 export * from './aiQuoteEstimateInputMode';
 export * from './aiQuoteEstimateResult';
+export * from './aiRenderPhotoInput';
+export * from './aiRenderPhotoResult';
 export * from './aiSuggestMaterialsInput';
 export * from './aiSuggestMaterialsResult';
 export * from './calendarEvent';

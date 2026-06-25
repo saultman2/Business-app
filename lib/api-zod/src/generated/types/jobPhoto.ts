@@ -15,5 +15,9 @@ export interface JobPhoto {
   caption?: string | null;
   /** @nullable */
   takenAt?: string | null;
+  /** @nullable */
+  renderType?: string | null;
+  /** @nullable */
+  pairedPhotoId?: number | null;
   createdAt: string;
 }

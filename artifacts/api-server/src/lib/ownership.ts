@@ -1,4 +1,4 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import {
   db,
   clientsTable,
@@ -114,5 +114,49 @@ export async function companyOwnsObject(
   return !!receipt;
 }
 
+/**
+ * Returns true when a storage object is already referenced by a record owned by
+ * a DIFFERENT company. Used to block cross-tenant object reads (e.g. before
+ * server-side downloading a source image for AI rendering). Freshly-uploaded
+ * objects that no record references yet are allowed (returns false).
+ */
+export async function objectReferencedByOtherCompany(
+  companyId: number,
+  storedUrl: string,
+): Promise<boolean> {
+  const [logo] = await db
+    .select({ id: companiesTable.id })
+    .from(companiesTable)
+    .where(
+      and(
+        ne(companiesTable.id, companyId),
+        eq(companiesTable.logoUrl, storedUrl),
+      ),
+    );
+  if (logo) return true;
+
+  const [photo] = await db
+    .select({ id: jobPhotosTable.id })
+    .from(jobPhotosTable)
+    .where(
+      and(
+        ne(jobPhotosTable.companyId, companyId),
+        eq(jobPhotosTable.imageUrl, storedUrl),
+      ),
+    );
+  if (photo) return true;
+
+  const [receipt] = await db
+    .select({ id: receiptsTable.id })
+    .from(receiptsTable)
+    .where(
+      and(
+        ne(receiptsTable.companyId, companyId),
+        eq(receiptsTable.imageUrl, storedUrl),
+      ),
+    );
+  return !!receipt;
+}
+
 // Re-export to keep a single import site if callers need raw operators.
-export { and, eq, or };
+export { and, eq, ne, or };

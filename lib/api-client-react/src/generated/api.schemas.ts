@@ -783,6 +783,10 @@ export interface JobPhoto {
   caption?: string | null;
   /** @nullable */
   takenAt?: string | null;
+  /** @nullable */
+  renderType?: string | null;
+  /** @nullable */
+  pairedPhotoId?: number | null;
   createdAt: string;
 }
 
@@ -1023,6 +1027,31 @@ export interface AiInvoiceDesignResult {
   /** A short conversational reply describing what changed. */
   reply: string;
   style: InvoiceStyle;
+}
+
+export interface AiRenderPhotoInput {
+  jobId: number;
+  /** The stored imageUrl of the uploaded before photo (e.g. /api/storage/objects/uploads/<uuid>). */
+  photoObjectPath: string;
+  /** @nullable */
+  caption?: string | null;
+  /** Description of the work to be performed. */
+  scopeOfWork: string;
+  /**
+     * Materials and finishes to apply in the render.
+     * @nullable
+     */
+  materialsUsed?: string | null;
+  /**
+     * The desired final look or outcome.
+     * @nullable
+     */
+  desiredOutcome?: string | null;
+}
+
+export interface AiRenderPhotoResult {
+  before: JobPhoto;
+  after: JobPhoto;
 }
 
 export type ListClientsParams = {
