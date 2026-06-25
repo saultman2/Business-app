@@ -362,10 +362,11 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
                       return (
                         <tr key={globalIdx} className="group">
                           <td className="py-1.5 pr-2">
-                            <Input
+                            <Textarea
                               value={item.description}
                               onChange={e => updateItem(globalIdx, "description", e.target.value)}
-                              className="h-7 text-sm border-transparent hover:border-input focus:border-input bg-transparent p-1"
+                              rows={2}
+                              className="text-sm border-transparent hover:border-input focus:border-input bg-transparent p-1 resize-none"
                             />
                           </td>
                           <td className="py-1.5 pr-2 text-right">
