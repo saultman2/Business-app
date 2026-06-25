@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
-  Users, Zap, HardHat, Calendar, UsersRound, Wallet, Sparkles,
+  Users, Zap, HardHat, Calendar, UsersRound, Wallet,
   Plus, FileText, CalendarClock, Briefcase, DollarSign, Clock,
   ArrowRight, TrendingUp,
 } from "lucide-react";
@@ -26,7 +26,7 @@ const CATEGORIES = [
   { href: "/calendar", label: "Calendar", desc: "Schedule & site visits", icon: Calendar, tint: "bg-violet-500/10 text-violet-600" },
   { href: "/crew", label: "Crew", desc: "Team & assignments", icon: UsersRound, tint: "bg-teal-500/10 text-teal-600" },
   { href: "/finances", label: "Finances", desc: "Estimates, invoices & pay", icon: Wallet, tint: "bg-emerald-500/10 text-emerald-600" },
-  { href: "/ai-tools", label: "AI Tools", desc: "Smart contractor tools", icon: Sparkles, tint: "bg-fuchsia-500/10 text-fuchsia-600" },
+
 ];
 
 function greeting() {
