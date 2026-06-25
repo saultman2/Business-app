@@ -21,7 +21,7 @@ import { useClerk } from "@clerk/react";
 const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/jobs", label: "Projects", icon: HardHat },
-  { href: "/quotes", label: "Estimates", icon: FileText },
+  { href: "/quotes", label: "Quotes", icon: FileText },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/settings", label: "Business Info", icon: Settings },
 ];

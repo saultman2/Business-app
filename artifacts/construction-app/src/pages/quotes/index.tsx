@@ -3,10 +3,12 @@ import { Link, useLocation } from "wouter";
 import {
   useListEstimates,
   useCreateEstimate,
+  useUpdateEstimate,
   useCreateEstimateItem,
   useGetCompany,
   useListJobs,
   useListClients,
+  useCreateJob,
   getListEstimatesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,7 +51,9 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const { data: clients } = useListClients({});
   const { data: company } = useGetCompany();
   const createEstimate = useCreateEstimate();
+  const updateEstimate = useUpdateEstimate();
   const createItem = useCreateEstimateItem();
+  const createJob = useCreateJob();
   const { toast } = useToast();
 
   const [step, setStep] = useState<"form" | "result">("form");
@@ -63,11 +67,31 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [aiItems, setAiItems] = useState<AiLineItem[]>([]);
   const [disclaimer, setDisclaimer] = useState("");
   const [estimateTitle, setEstimateTitle] = useState("AI Quote");
+  const [taxRate, setTaxRate] = useState<number>(company?.defaultTaxRate ?? 0);
+  const [newJobTitle, setNewJobTitle] = useState("");
+  const [showNewJob, setShowNewJob] = useState(false);
+  const [isCreatingJob, setIsCreatingJob] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedJob = jobs?.find(j => j.id === jobId);
   const selectedClient = clients?.find(c => c.id === clientId);
   const zipCode = company?.zipCode || undefined;
+
+  const handleCreateJob = async () => {
+    if (!newJobTitle.trim()) return;
+    setIsCreatingJob(true);
+    try {
+      const job = await createJob.mutateAsync({ data: { title: newJobTitle.trim(), clientId: clientId || undefined } });
+      setJobId(job.id);
+      setEstimateTitle(`Quote — ${job.title}`);
+      setShowNewJob(false);
+      setNewJobTitle("");
+    } catch {
+      toast({ title: "Failed to create job", variant: "destructive" });
+    } finally {
+      setIsCreatingJob(false);
+    }
+  };
 
   const handlePhotoAdd = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -136,6 +160,9 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const laborTotal = laborItems.reduce((s, i) => s + (i.hours || 0) * (i.hourlyRate || 0), 0);
   const materialTotal = materialItems.reduce((s, i) => s + (i.qty || 0) * (i.unitPrice || 0), 0);
   const otherTotal = otherItems.reduce((s, i) => s + lineTotal(i), 0);
+  const visibleTotal = mode === "labor_only" ? laborTotal : total;
+  const taxAmount = visibleTotal * (taxRate / 100);
+  const grandTotal = visibleTotal + taxAmount;
 
   const handleSave = async () => {
     if (!clientId && !jobId) {
@@ -166,6 +193,18 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
           },
         });
       }
+
+      await updateEstimate.mutateAsync({
+        id: est.id,
+        data: {
+          notes: `[AI-generated quote] ${disclaimer}`,
+          scopeOfWork: description,
+          taxRate: taxRate,
+          includeTax: taxRate > 0,
+          includeLabor: laborItems.length > 0,
+          includeMaterials: materialItems.length > 0 && mode !== "labor_only",
+        },
+      });
 
       toast({ title: "Estimate saved", description: "AI-generated quote saved. Review before sending to client." });
       onSaved();
@@ -218,9 +257,12 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
             {/* Header: company + client info */}
             <div className="flex flex-col sm:flex-row sm:justify-between gap-6 pb-6 border-b">
               <div>
+                {company?.logoUrl && (
+                  <img src={company.logoUrl} alt="Company logo" className="h-12 w-auto object-contain mb-3 print:mb-2" />
+                )}
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="text-xl font-bold text-foreground">{company?.name || "Your Company"}</h2>
-                  <Badge variant="outline" className="text-xs text-purple-600 border-purple-300 bg-purple-50">
+                  <Badge variant="outline" className="text-xs text-purple-600 border-purple-300 bg-purple-50 print:hidden">
                     <Sparkles className="w-2.5 h-2.5 mr-1" /> AI Draft
                   </Badge>
                 </div>
@@ -360,11 +402,26 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
                     <span className="tabular-nums w-28 text-right">{formatCurrency(otherTotal)}</span>
                   </div>
                 )}
+                <div className="flex items-center gap-8 text-muted-foreground border-t pt-1.5 w-64 justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span>Tax</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      value={taxRate}
+                      onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
+                      className="w-16 h-6 text-xs px-1.5 print:hidden"
+                    />
+                    <span className="text-xs print:hidden">%</span>
+                    <span className="hidden print:inline text-xs">({taxRate}%)</span>
+                  </div>
+                  <span className="tabular-nums">{formatCurrency(taxAmount)}</span>
+                </div>
                 <div className="flex gap-8 font-bold text-lg pt-1.5 border-t w-64 justify-between">
                   <span>TOTAL</span>
-                  <span className="tabular-nums text-right">
-                    {formatCurrency(mode === "labor_only" ? laborTotal : total)}
-                  </span>
+                  <span className="tabular-nums text-right">{formatCurrency(grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -379,17 +436,39 @@ function NewQuotePanel({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Project (optional)</Label>
-          <Select value={jobId?.toString() ?? "none"} onValueChange={v => setJobId(v === "none" ? null : parseInt(v))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a project..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No project</SelectItem>
-              {jobs?.map(j => (
-                <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showNewJob ? (
+            <div className="flex gap-2">
+              <Input
+                autoFocus
+                placeholder="New project name..."
+                value={newJobTitle}
+                onChange={e => setNewJobTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleCreateJob(); if (e.key === "Escape") setShowNewJob(false); }}
+                className="flex-1"
+              />
+              <Button size="sm" onClick={handleCreateJob} disabled={isCreatingJob || !newJobTitle.trim()}>
+                {isCreatingJob ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowNewJob(false)}>✕</Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Select value={jobId?.toString() ?? "none"} onValueChange={v => setJobId(v === "none" ? null : parseInt(v))}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select a project..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No project</SelectItem>
+                  {jobs?.map(j => (
+                    <SelectItem key={j.id} value={j.id.toString()}>{j.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={() => setShowNewJob(true)} title="Create new project">
+                +
+              </Button>
+            </div>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label>Client (optional)</Label>
