@@ -23,6 +23,7 @@ import NewInvoicePage from "@/pages/invoices/new";
 import EditInvoicePage from "@/pages/invoices/edit";
 import QuotesPage from "@/pages/quotes/index";
 import FinancesPage from "@/pages/finances";
+import CrewPage from "@/pages/crew";
 import AiToolsPage from "@/pages/ai-tools";
 import NotFound from "@/pages/not-found";
 
@@ -149,6 +150,7 @@ function ProtectedRoutes() {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/quotes" component={QuotesPage} />
         <Route path="/finances" component={FinancesPage} />
+        <Route path="/crew" component={CrewPage} />
         <Route path="/ai-tools" component={AiToolsPage} />
         <Route path="/invoices" component={InvoicesPage} />
         <Route path="/invoices/new" component={NewInvoicePage} />
