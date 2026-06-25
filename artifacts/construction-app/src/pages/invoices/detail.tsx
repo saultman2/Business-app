@@ -13,46 +13,30 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Printer, Plus, CheckCircle, AlertCircle, Clock, Loader2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft, Printer, Plus, CheckCircle, AlertCircle, Clock,
+  Loader2, Pencil, Send,
+} from "lucide-react";
+import { type LineItem, type Template, lineTotal } from "./invoice-types";
 import "./invoice-templates.css";
 
-type Template = "clean" | "classic" | "bold";
-
-interface LineItem {
-  id: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
-}
-
-function lineTotal(item: LineItem): number {
-  return parseFloat((item.quantity * item.unitPrice).toFixed(2));
-}
-
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
-  unpaid: { label: "Unpaid", variant: "secondary", icon: <Clock className="h-3 w-3" /> },
-  partial: { label: "Partial", variant: "default", icon: <AlertCircle className="h-3 w-3" /> },
-  paid: { label: "Paid", variant: "outline", icon: <CheckCircle className="h-3 w-3" /> },
-  overdue: { label: "Overdue", variant: "destructive", icon: <AlertCircle className="h-3 w-3" /> },
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  draft:   { label: "Draft",   variant: "secondary" },
+  sent:    { label: "Sent",    variant: "default" },
+  unpaid:  { label: "Unpaid",  variant: "secondary" },
+  partial: { label: "Partial", variant: "default" },
+  paid:    { label: "Paid",    variant: "outline" },
+  overdue: { label: "Overdue", variant: "destructive" },
 };
 
-function InvoiceDocumentView({
+function InvoiceDocView({
   template,
   invoice,
   company,
@@ -66,39 +50,32 @@ function InvoiceDocumentView({
   const logoUrl = company?.logoUrl ?? null;
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
 
+  const headerContent = (
+    <>
+      <div className="inv-company-block">
+        {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
+        <div className="inv-company-name">{company?.name ?? ""}</div>
+        {company?.address && <div className="inv-company-meta">{company.address}</div>}
+        {(company?.phone || company?.email) && (
+          <div className="inv-company-meta">
+            {company.phone}{company.phone && company.email ? " · " : ""}{company.email}
+          </div>
+        )}
+      </div>
+      <div className="inv-number-block">
+        <div className="inv-label">INVOICE</div>
+        <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
+        <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
+        <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
+      </div>
+    </>
+  );
+
   return (
     <div className={`invoice-doc template-${template} print-only`} id="invoice-document">
-      {template === "bold" ? (
-        <div className="inv-header-bold">
-          <div className="inv-company-block">
-            {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
-            <div className="inv-company-name">{company?.name ?? ""}</div>
-            <div className="inv-company-meta">{company?.address ?? ""}</div>
-            <div className="inv-company-meta">{company?.phone ?? ""}{company?.email ? ` · ${company.email}` : ""}</div>
-          </div>
-          <div className="inv-number-block">
-            <div className="inv-label">INVOICE</div>
-            <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
-            <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
-            <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
-          </div>
-        </div>
-      ) : (
-        <div className="inv-header-std">
-          <div className="inv-company-block">
-            {logoUrl && <img src={logoUrl} alt="logo" className="inv-logo" />}
-            <div className="inv-company-name">{company?.name ?? ""}</div>
-            <div className="inv-company-meta">{company?.address ?? ""}</div>
-            <div className="inv-company-meta">{company?.phone ?? ""}{company?.email ? ` · ${company.email}` : ""}</div>
-          </div>
-          <div className="inv-number-block">
-            <div className="inv-label">INVOICE</div>
-            <div className="inv-num"><span className="inv-num-text">{invoice.invoiceNumber || `INV-${invoice.id}`}</span></div>
-            <div className="inv-date-row"><span className="inv-date-label">Date:</span> {invoice.invoiceDate || "—"}</div>
-            <div className="inv-date-row"><span className="inv-date-label">Due:</span> {invoice.dueDate || "—"}</div>
-          </div>
-        </div>
-      )}
+      <div className={template === "bold" ? "inv-header-bold" : "inv-header-std"}>
+        {headerContent}
+      </div>
 
       <div className="inv-bill-row">
         <div className="inv-bill-to">
@@ -132,9 +109,7 @@ function InvoiceDocumentView({
         </thead>
         <tbody>
           {lineItems.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="inv-td inv-td-empty">No line items.</td>
-            </tr>
+            <tr><td colSpan={5} className="inv-td inv-td-empty">No line items.</td></tr>
           ) : (
             lineItems.map((item) => (
               <tr key={item.id}>
@@ -161,17 +136,13 @@ function InvoiceDocumentView({
           <div className="inv-payment-text">{invoice.paymentTerms}</div>
         </div>
       )}
-
       {invoice.notes && (
         <div className="inv-notes">
           <div className="inv-section-label">NOTES</div>
           <div className="inv-notes-text">{invoice.notes}</div>
         </div>
       )}
-
-      <div className="inv-footer">
-        <div className="inv-footer-text">Thank you for your business!</div>
-      </div>
+      <div className="inv-footer"><div className="inv-footer-text">Thank you for your business!</div></div>
     </div>
   );
 }
@@ -193,29 +164,20 @@ export default function InvoiceDetailPage() {
 
   const lineItems: LineItem[] = (() => {
     if (!invoice?.lineItemsJson) return [];
-    try {
-      return JSON.parse(invoice.lineItemsJson) as LineItem[];
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(invoice.lineItemsJson) as LineItem[]; } catch { return []; }
   })();
 
   const template: Template = (invoice?.template as Template) ?? "clean";
-  const status = STATUS_MAP[invoice?.status ?? "unpaid"] ?? STATUS_MAP.unpaid;
+  const statusInfo = STATUS_MAP[invoice?.status ?? "draft"] ?? STATUS_MAP.draft;
   const payments: Payment[] = invoice?.payments ?? [];
 
-  const handlePrint = () => window.print();
-
-  const handleMarkPaid = useCallback(async () => {
+  const handleStatusChange = useCallback(async (newStatus: string) => {
     if (!invoice) return;
     try {
-      await updateInvoice.mutateAsync({
-        id,
-        data: { status: "paid", totalAmount: invoice.totalAmount },
-      });
-      toast({ title: "Invoice marked as paid" });
+      await updateInvoice.mutateAsync({ id, data: { status: newStatus, totalAmount: invoice.totalAmount } });
+      toast({ title: `Invoice marked as ${newStatus}` });
     } catch {
-      toast({ title: "Failed to update invoice", variant: "destructive" });
+      toast({ title: "Failed to update status", variant: "destructive" });
     }
   }, [invoice, id, updateInvoice, toast]);
 
@@ -223,10 +185,7 @@ export default function InvoiceDetailPage() {
     const amount = parseFloat(paymentAmount);
     if (!amount || amount <= 0) return;
     try {
-      await createPayment.mutateAsync({
-        invoiceId: id,
-        data: { amount, method: paymentMethod, date: paymentDate },
-      });
+      await createPayment.mutateAsync({ invoiceId: id, data: { amount, method: paymentMethod, date: paymentDate } });
       setPaymentOpen(false);
       setPaymentAmount("");
       toast({ title: "Payment recorded" });
@@ -240,23 +199,40 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide">
+      <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide flex-wrap">
         <Link href="/invoices">
           <Button variant="ghost" size="sm" className="gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Invoices
           </Button>
         </Link>
-        <h1 className="text-xl font-bold flex-1">
+        <h1 className="text-xl font-bold flex-1 min-w-0 truncate">
           {invoice.invoiceNumber || `INV-${invoice.id}`}
         </h1>
-        <Badge variant={status.variant} className="gap-1">
-          {status.icon} {status.label}
-        </Badge>
-        {invoice.status !== "paid" && (
+        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+
+        <Link href={`/invoices/${id}/edit`}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Pencil className="h-4 w-4" /> Edit Invoice
+          </Button>
+        </Link>
+
+        {invoice.status === "draft" && (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleMarkPaid}
+            onClick={() => handleStatusChange("sent")}
+            disabled={updateInvoice.isPending}
+            className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
+          >
+            {updateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Mark Sent
+          </Button>
+        )}
+        {invoice.status !== "paid" && invoice.status !== "draft" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleStatusChange("paid")}
             disabled={updateInvoice.isPending}
             className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
           >
@@ -264,15 +240,11 @@ export default function InvoiceDetailPage() {
             Mark Paid
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPaymentOpen(true)}
-          className="gap-1.5"
-        >
+
+        <Button variant="outline" size="sm" onClick={() => setPaymentOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" /> Record Payment
         </Button>
-        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print / PDF
         </Button>
       </div>
@@ -332,39 +304,23 @@ export default function InvoiceDetailPage() {
 
         <main className="flex-1 overflow-y-auto bg-muted/40 p-6 print-invoice-main">
           <div className="max-w-3xl mx-auto">
-            <InvoiceDocumentView
-              template={template}
-              invoice={invoice}
-              company={company}
-              lineItems={lineItems}
-            />
+            <InvoiceDocView template={template} invoice={invoice} company={company} lineItems={lineItems} />
           </div>
         </main>
       </div>
 
       <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Amount</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder={`Balance: ${formatCurrency(invoice.balanceDue)}`}
-              />
+              <Input type="number" min="0" step="0.01" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder={`Balance: ${formatCurrency(invoice.balanceDue)}`} />
             </div>
             <div className="space-y-2">
               <Label>Payment Method</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="check">Check</SelectItem>
@@ -376,19 +332,12 @@ export default function InvoiceDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Date</Label>
-              <Input
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
+              <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleAddPayment}
-              disabled={createPayment.isPending || !paymentAmount}
-            >
+            <Button onClick={handleAddPayment} disabled={createPayment.isPending || !paymentAmount}>
               {createPayment.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Record Payment
             </Button>

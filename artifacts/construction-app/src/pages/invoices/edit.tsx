@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useRoute, Link } from "wouter";
 import {
-  useCreateInvoice,
+  useGetInvoice,
+  useUpdateInvoice,
   useListJobs,
   useListClients,
   useGetCompany,
@@ -22,19 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Printer,
-  Sparkles,
-  Plus,
-  Trash2,
-  Save,
-  ArrowLeft,
-  Loader2,
-  Check,
-  FileText,
+  Printer, Sparkles, Plus, Trash2, Save, ArrowLeft, Loader2, FileText,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { Link } from "wouter";
 import { InvoiceDocument } from "./invoice-document";
 import {
   type Template,
@@ -45,27 +38,26 @@ import {
 import { TemplatePicker } from "./template-picker";
 import "./invoice-templates.css";
 
-export default function NewInvoicePage() {
-  const [, setLocation] = useLocation();
+export default function EditInvoicePage() {
+  const [, params] = useRoute("/invoices/:id/edit");
+  const id = params?.id ? parseInt(params.id) : 0;
   const { toast } = useToast();
 
+  const { data: invoice, isLoading } = useGetInvoice(id);
   const { data: company } = useGetCompany();
   const { data: jobs } = useListJobs({});
   const { data: clients } = useListClients({});
 
-  const createInvoice = useCreateInvoice();
+  const updateInvoice = useUpdateInvoice();
   const aiDescription = useAiInvoiceDescription();
 
+  const [initialized, setInitialized] = useState(false);
   const [template, setTemplate] = useState<Template>("clean");
   const [selectedJobId, setSelectedJobId] = useState<string>("none");
   const [selectedClientId, setSelectedClientId] = useState<string>("none");
-  const [invoiceNumber, setInvoiceNumber] = useState<string>(
-    `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`
-  );
-  const [invoiceDate, setInvoiceDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [dueDate, setDueDate] = useState<string>(() => {
-    const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10);
-  });
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const [invoiceDate, setInvoiceDate] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>("");
   const [lineItems, setLineItems] = useState<LineItem[]>([newLineItem()]);
   const [servicesDescription, setServicesDescription] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
@@ -73,10 +65,31 @@ export default function NewInvoicePage() {
   const [aiNotes, setAiNotes] = useState("");
   const [importEstimateId, setImportEstimateId] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (!invoice || initialized) return;
+    setTemplate((invoice.template as Template) ?? "clean");
+    setSelectedJobId(invoice.jobId ? String(invoice.jobId) : "none");
+    setSelectedClientId(invoice.clientId ? String(invoice.clientId) : "none");
+    setInvoiceNumber(invoice.invoiceNumber ?? "");
+    setInvoiceDate(invoice.invoiceDate ?? "");
+    setDueDate(invoice.dueDate ?? "");
+    setServicesDescription(invoice.servicesDescription ?? "");
+    setPaymentTerms(invoice.paymentTerms ?? "");
+    setNotes(invoice.notes ?? "");
+    if (invoice.lineItemsJson) {
+      try {
+        setLineItems(JSON.parse(invoice.lineItemsJson) as LineItem[]);
+      } catch { /* keep default */ }
+    }
+    setInitialized(true);
+  }, [invoice, initialized]);
+
   const jobIdNum = selectedJobId !== "none" ? parseInt(selectedJobId) : undefined;
   const selectedJob = jobs?.find((j) => j.id === jobIdNum);
   const selectedClient = clients?.find((c) =>
-    selectedJob ? c.id === selectedJob.clientId : (selectedClientId !== "none" ? c.id === parseInt(selectedClientId) : false)
+    selectedJob
+      ? c.id === selectedJob.clientId
+      : selectedClientId !== "none" ? c.id === parseInt(selectedClientId) : false
   );
 
   const { data: jobEstimates } = useListEstimates(
@@ -102,21 +115,17 @@ export default function NewInvoicePage() {
 
   const addLineItem = () => setLineItems((prev) => [...prev, newLineItem()]);
   const removeLineItem = (id: string) => setLineItems((prev) => prev.filter((i) => i.id !== id));
-  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) =>
-    setLineItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+  const updateLineItem = (itemId: string, field: keyof LineItem, value: string | number) =>
+    setLineItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, [field]: value } : i)));
 
   const subtotal = lineItems.reduce((s, i) => s + lineTotal(i), 0);
 
   const handleAiGenerate = useCallback(async () => {
-    if (!selectedJob && selectedJobId === "none") {
-      toast({ title: "Select a job to generate a description", variant: "destructive" });
-      return;
-    }
     try {
       const result = await aiDescription.mutateAsync({
         data: {
           jobId: selectedJob?.id,
-          jobTitle: selectedJob?.title ?? "Construction Services",
+          jobTitle: selectedJob?.title ?? invoice?.jobTitle ?? "Construction Services",
           jobType: selectedJob?.jobType ?? undefined,
           notes: aiNotes || undefined,
           lineItems: lineItems.map((i) => ({
@@ -134,11 +143,12 @@ export default function NewInvoicePage() {
     } catch {
       toast({ title: "AI generation failed", variant: "destructive" });
     }
-  }, [selectedJob, selectedJobId, lineItems, aiNotes, aiDescription, toast]);
+  }, [selectedJob, invoice, lineItems, aiNotes, aiDescription, toast]);
 
   const handleSave = useCallback(async () => {
     try {
-      const invoice = await createInvoice.mutateAsync({
+      await updateInvoice.mutateAsync({
+        id,
         data: {
           jobId: selectedJob?.id ?? undefined,
           clientId: selectedClient?.id ?? undefined,
@@ -153,30 +163,35 @@ export default function NewInvoicePage() {
           template,
         },
       });
-      toast({ title: "Invoice saved!" });
-      setLocation(`/invoices/${invoice.id}`);
+      toast({ title: "Invoice updated!" });
     } catch {
-      toast({ title: "Failed to save invoice", variant: "destructive" });
+      toast({ title: "Failed to update invoice", variant: "destructive" });
     }
-  }, [selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, subtotal, lineItems, servicesDescription, paymentTerms, notes, template, createInvoice, setLocation, toast]);
+  }, [id, selectedJob, selectedClient, invoiceNumber, invoiceDate, dueDate, subtotal, lineItems, servicesDescription, paymentTerms, notes, template, updateInvoice, toast]);
+
+  if (isLoading || !initialized) {
+    return <div className="p-8"><Skeleton className="h-96 w-full max-w-3xl mx-auto" /></div>;
+  }
 
   const logoUrl = company?.logoUrl ?? null;
 
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex items-center gap-3 px-6 py-4 border-b bg-background print-hide">
-        <Link href="/invoices">
+        <Link href={`/invoices/${id}`}>
           <Button variant="ghost" size="sm" className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Invoices
+            <ArrowLeft className="h-4 w-4" /> Back
           </Button>
         </Link>
-        <h1 className="text-xl font-bold flex-1">New Invoice</h1>
+        <h1 className="text-xl font-bold flex-1">
+          Edit Invoice {invoiceNumber ? `· ${invoiceNumber}` : ""}
+        </h1>
         <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print / PDF
         </Button>
-        <Button size="sm" onClick={handleSave} disabled={createInvoice.isPending} className="gap-1.5">
-          {createInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save Invoice
+        <Button size="sm" onClick={handleSave} disabled={updateInvoice.isPending} className="gap-1.5">
+          {updateInvoice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Changes
         </Button>
       </div>
 
@@ -233,24 +248,22 @@ export default function NewInvoicePage() {
                   <FileText className="h-4 w-4 text-primary" />
                   Import from estimate
                 </div>
-                <div className="flex gap-2">
-                  <Select
-                    value="none"
-                    onValueChange={(val) => { if (val !== "none") setImportEstimateId(parseInt(val)); }}
-                  >
-                    <SelectTrigger className="flex-1 h-8 text-sm">
-                      <SelectValue placeholder="Choose estimate…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Choose estimate…</SelectItem>
-                      {jobEstimates.map((e) => (
-                        <SelectItem key={e.id} value={String(e.id)}>
-                          {e.estimateNumber || `EST-${e.id}`} · {e.status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value="none"
+                  onValueChange={(val) => { if (val !== "none") setImportEstimateId(parseInt(val)); }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Choose estimate…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Choose estimate…</SelectItem>
+                    {jobEstimates.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.estimateNumber || `EST-${e.id}`} · {e.status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-[11px] text-muted-foreground">Selecting an estimate replaces the current line items.</p>
               </div>
             )}
@@ -327,10 +340,7 @@ export default function NewInvoicePage() {
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-amber-500" /> AI Description
             </Label>
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Notes for AI (optional)</Label>
-              <Textarea value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} placeholder="Any special notes to guide the AI..." className="bg-background resize-none h-16 text-sm" />
-            </div>
+            <Textarea value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} placeholder="Notes for AI (optional)..." className="bg-background resize-none h-16 text-sm" />
             <Button variant="outline" size="sm" onClick={handleAiGenerate} disabled={aiDescription.isPending} className="w-full gap-2 border-amber-300 text-amber-700 hover:bg-amber-50">
               {aiDescription.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Generate with AI
@@ -349,7 +359,7 @@ export default function NewInvoicePage() {
 
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes to include on the invoice..." className="bg-background resize-none h-20 text-sm" />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." className="bg-background resize-none h-20 text-sm" />
           </div>
         </aside>
 
@@ -365,9 +375,9 @@ export default function NewInvoicePage() {
               companyPhone={company?.phone ?? ""}
               companyEmail={company?.email ?? ""}
               logoUrl={logoUrl}
-              clientName={selectedClient?.name ?? ""}
+              clientName={selectedClient?.name ?? invoice?.clientName ?? ""}
               clientAddress={selectedClient?.address ?? ""}
-              jobTitle={selectedJob?.title ?? ""}
+              jobTitle={selectedJob?.title ?? invoice?.jobTitle ?? ""}
               lineItems={lineItems}
               servicesDescription={servicesDescription}
               paymentTerms={paymentTerms}

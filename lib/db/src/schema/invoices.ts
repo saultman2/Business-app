@@ -2,7 +2,7 @@ import { pgTable, serial, text, timestamp, integer, numeric } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const invoiceStatusEnum = ["unpaid", "partial", "paid", "overdue"] as const;
+export const invoiceStatusEnum = ["draft", "sent", "unpaid", "partial", "paid", "overdue"] as const;
 export const paymentMethodEnum = ["cash", "check", "card", "bank_transfer", "other"] as const;
 
 export const invoicesTable = pgTable("invoices", {
@@ -17,7 +17,7 @@ export const invoicesTable = pgTable("invoices", {
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
   amountPaid: numeric("amount_paid", { precision: 12, scale: 2 }).notNull().default("0"),
   balanceDue: numeric("balance_due", { precision: 12, scale: 2 }).notNull().default("0"),
-  status: text("status").notNull().default("unpaid"),
+  status: text("status").notNull().default("draft"),
   notes: text("notes"),
   lineItemsJson: text("line_items_json"),
   servicesDescription: text("services_description"),
