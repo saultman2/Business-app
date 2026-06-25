@@ -21,8 +21,7 @@ import {
   type MapProvider,
 } from "@/lib/maps";
 import { formatDate } from "@/lib/format";
-
-const INACTIVE_STATUSES = new Set(["paid"]);
+import { isActiveJobStatus } from "@/lib/job-status";
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -62,7 +61,7 @@ export default function NavigatePage() {
 
   const activeJobs = useMemo(() => {
     return (jobs ?? [])
-      .filter((j) => !INACTIVE_STATUSES.has(j.status))
+      .filter((j) => isActiveJobStatus(j.status))
       .sort((a, b) => {
         const aAppt = nextApptByJob.get(a.id);
         const bAppt = nextApptByJob.get(b.id);
