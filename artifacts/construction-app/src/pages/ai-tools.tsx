@@ -1,11 +1,13 @@
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, FileText, Image as ImageIcon, Tag, ArrowRight } from "lucide-react";
 
 type Tool = {
   href: string | null;
   label: string;
   desc: string;
+  cta: string;
   icon: typeof Zap;
   tint: string;
   status: "active" | "soon";
@@ -13,34 +15,36 @@ type Tool = {
 
 const TOOLS: Tool[] = [
   {
-    href: "/quotes", label: "AI Quote Estimator",
+    href: "/quotes", label: "AI Estimate",
     desc: "Describe a job or snap a photo and get a priced, itemized estimate in seconds.",
+    cta: "Generate estimate",
     icon: Zap, tint: "bg-amber-500/10 text-amber-600", status: "active",
   },
   {
-    href: null, label: "AI Invoice Builder",
-    desc: "Turn a short description into a polished, ready-to-send invoice.",
-    icon: FileText, tint: "bg-emerald-500/10 text-emerald-600", status: "soon",
+    href: "/invoices/new", label: "AI Invoice Designer",
+    desc: "Build a polished, ready-to-send invoice from a project or estimate.",
+    cta: "Create invoice",
+    icon: FileText, tint: "bg-emerald-500/10 text-emerald-600", status: "active",
   },
   {
-    href: null, label: "Before & After Renderer",
-    desc: "Generate realistic renders of a finished project to win the bid.",
-    icon: ImageIcon, tint: "bg-violet-500/10 text-violet-600", status: "soon",
-  },
-  {
-    href: null, label: "Smart Material Pricing",
-    desc: "Live pricing from Home Depot, Lowe's and your own job history.",
+    href: null, label: "AI Material Pricing",
+    desc: "Live pricing from major suppliers and your own job history.",
+    cta: "Coming soon",
     icon: Tag, tint: "bg-sky-500/10 text-sky-600", status: "soon",
+  },
+  {
+    href: null, label: "AI Photo Render",
+    desc: "Generate realistic before-and-after renders of a finished project to win the bid.",
+    cta: "Coming soon",
+    icon: ImageIcon, tint: "bg-violet-500/10 text-violet-600", status: "soon",
   },
 ];
 
 function ToolCard({ t }: { t: Tool }) {
-  const inner = (
+  return (
     <div
       className={`group bg-card border border-card-border rounded-xl p-6 h-full flex flex-col transition-all ${
-        t.status === "active"
-          ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40"
-          : "opacity-80"
+        t.status === "active" ? "hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40" : ""
       }`}
     >
       <div className="flex items-start justify-between">
@@ -53,20 +57,19 @@ function ToolCard({ t }: { t: Tool }) {
           <Badge variant="secondary">Coming soon</Badge>
         )}
       </div>
-      <h3 className="font-semibold text-lg mt-4 flex items-center gap-1.5">
-        {t.label}
-        {t.status === "active" && (
-          <ArrowRight className="w-4 h-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
-        )}
-      </h3>
+      <h3 className="font-semibold text-lg mt-4">{t.label}</h3>
       <p className="text-sm text-muted-foreground mt-1.5 flex-1">{t.desc}</p>
+      <div className="mt-5">
+        {t.status === "active" && t.href ? (
+          <Button asChild className="w-full sm:w-auto">
+            <Link href={t.href}>{t.cta} <ArrowRight className="w-4 h-4" /></Link>
+          </Button>
+        ) : (
+          <Button variant="outline" disabled className="w-full sm:w-auto">{t.cta}</Button>
+        )}
+      </div>
     </div>
   );
-
-  if (t.href && t.status === "active") {
-    return <Link href={t.href}>{inner}</Link>;
-  }
-  return inner;
 }
 
 export default function AiToolsPage() {

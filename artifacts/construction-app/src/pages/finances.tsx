@@ -125,8 +125,8 @@ export default function FinancesPage() {
         <>
           {tab === "estimates" && (
             estimates && estimates.length > 0 ? (
-              <div className="rounded-xl border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead className="bg-muted/40 border-b">
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Title</th>
@@ -159,8 +159,8 @@ export default function FinancesPage() {
 
           {tab === "invoices" && (
             invoices && invoices.length > 0 ? (
-              <div className="rounded-xl border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead className="bg-muted/40 border-b">
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Invoice</th>
@@ -193,8 +193,8 @@ export default function FinancesPage() {
 
           {tab === "payments" && (
             payments.length > 0 ? (
-              <div className="rounded-xl border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead className="bg-muted/40 border-b">
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Invoice</th>

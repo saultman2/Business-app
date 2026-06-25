@@ -1,0 +1,150 @@
+Apple App Store Compliance & Launch Readiness Requirements
+
+Build and review the application to meet current Apple App Store Review Guidelines and Human Interface Guidelines. The goal is to maximize the likelihood of approval while maintaining all planned functionality.
+
+App Quality Requirements
+
+The application must:
+
+Be fully functional with no placeholder screens.
+Have no broken buttons, links, or navigation paths.
+Have no demo/sample data visible to users.
+Load quickly and reliably.
+Provide meaningful functionality beyond a simple website wrapper.
+Maintain a consistent design language throughout the app.
+Support current iPhone screen sizes.
+Handle offline and poor-network conditions gracefully.
+Display useful error messages when something fails.
+User Account Requirements
+
+If accounts are required:
+
+Provide Sign In.
+Support Sign in with Apple where required.
+Allow password reset.
+Allow users to update account information.
+Provide a method to delete the account from within the app.
+Provide a method to request deletion of associated data.
+Privacy Requirements
+
+Create:
+
+Privacy Policy
+Terms of Service
+Data Usage Disclosure
+
+Clearly disclose:
+
+What information is collected
+Why it is collected
+How it is stored
+Whether data is shared with third parties
+
+Do not collect unnecessary personal information.
+
+Location Services (GPS)
+
+Before accessing location:
+
+Request permission properly.
+Explain why location is needed.
+Allow users to deny access.
+Continue functioning when location access is denied.
+
+Location should only be used for:
+
+Job-site navigation
+Route planning
+Address mapping
+Camera & Photo Permissions
+
+Before using camera or photos:
+
+Request permission properly.
+Explain why access is needed.
+
+Use cases:
+
+Project photos
+Receipt uploads
+Before-and-after documentation
+AI project renderings
+AI Feature Requirements
+
+AI-generated content must:
+
+Be clearly labeled as AI-generated.
+Allow user review before sending to customers.
+Allow editing before final use.
+Never automatically send customer-facing content without user approval.
+Subscription Requirements
+
+If charging monthly:
+
+Use Apple's In-App Purchase system when required for digital subscriptions.
+Clearly explain:
+Features included
+Billing frequency
+Renewal terms
+Cancellation process
+
+Create:
+
+Free Plan
+Limited projects
+Limited estimates
+Pro Plan
+Full functionality
+Business Plan
+Team management
+Crew scheduling
+Advanced reporting
+Stability Testing
+
+Before release:
+
+Test every screen.
+Test every workflow.
+Test every form.
+Test every subscription flow.
+Test estimate generation.
+Test invoice generation.
+Test project creation.
+Test calendar scheduling.
+Test crew assignments.
+Test GPS navigation.
+Test AI features.
+
+No crashes are acceptable.
+
+Apple Human Interface Guidelines
+
+Follow Apple's design standards:
+
+Native iOS navigation
+Native gestures
+Native date pickers
+Native modal behavior
+Native typography scaling
+Dark Mode support
+Light Mode support
+
+The app should feel like an iPhone app, not a web page inside an app.
+
+Launch Checklist
+
+Verify:
+
+All pages functional
+All permissions explained
+Privacy Policy published
+Terms of Service published
+Subscription system tested
+Account deletion available
+No placeholder content
+No broken navigation
+No crashes
+Responsive on all supported iPhone sizes
+Final Objective
+
+Deliver a polished, professional contractor business management platform that complies with Apple App Store requirements, follows iOS design standards, protects user privacy, supports subscriptions properly, and is ready for public release with the highest practical likelihood of App Store approval.

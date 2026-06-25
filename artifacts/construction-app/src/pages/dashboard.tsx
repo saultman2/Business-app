@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   Users, Zap, HardHat, Calendar, UsersRound, Wallet, Sparkles,
   Plus, FileText, CalendarClock, Briefcase, DollarSign, Clock,
-  CheckCircle2, ArrowRight, TrendingUp,
+  ArrowRight, TrendingUp,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -148,7 +148,7 @@ export default function Dashboard() {
         href: `/jobs/${j.id}`,
       });
     }
-    return items.sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 8);
+    return items.sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 10);
   }, [estimates, invoices, jobs]);
 
   if (isLoading) {
@@ -193,12 +193,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Active Jobs" value={String(summary?.activeJobs ?? 0)}
           icon={<Briefcase className="w-4 h-4" />} accent="text-orange-600" />
-        <Kpi label="Estimates Out" value={String(summary?.estimatesSent ?? 0)}
+        <Kpi label="Pending Estimates" value={String(summary?.estimatesSent ?? 0)}
           icon={<FileText className="w-4 h-4" />} accent="text-amber-600" />
-        <Kpi label="Outstanding" value={formatCurrency(summary?.totalUnpaidAmount ?? 0)}
+        <Kpi label="Outstanding Invoices" value={formatCurrency(summary?.totalUnpaidAmount ?? 0)}
           icon={<Clock className="w-4 h-4" />} accent="text-rose-600" />
-        <Kpi label="Collected" value={formatCurrency(summary?.totalPaidAmount ?? 0)}
-          icon={<CheckCircle2 className="w-4 h-4" />} accent="text-emerald-600" />
+        <Kpi label="Crew on Duty" value="0"
+          icon={<UsersRound className="w-4 h-4" />} accent="text-teal-600" />
       </div>
 
       {/* Command center */}
