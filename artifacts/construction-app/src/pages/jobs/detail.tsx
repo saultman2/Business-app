@@ -7,6 +7,7 @@ import {
   useGetJobMaterialList, 
   useListEstimates,
   useUpdateEstimate,
+  useDeleteEstimate,
   useGetEstimate,
   useListReceipts,
   useCreateReceipt,
@@ -75,7 +76,9 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateEstimate = useUpdateEstimate();
+  const deleteEstimate = useDeleteEstimate();
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleApprove = (estimateId: number) => {
     setApprovingId(estimateId);
@@ -93,6 +96,21 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
         onSettled: () => setApprovingId(null),
       }
     );
+  };
+
+  const handleDelete = (estimateId: number, title: string) => {
+    if (!window.confirm(`Delete estimate "${title}"? This cannot be undone.`)) return;
+    setDeletingId(estimateId);
+    deleteEstimate.mutate({ id: estimateId }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListEstimatesQueryKey({ jobId }) });
+        queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(jobId) });
+        queryClient.invalidateQueries({ queryKey: getGetJobSummaryQueryKey(jobId) });
+        toast({ title: "Estimate deleted" });
+      },
+      onError: () => toast({ title: "Failed to delete estimate", variant: "destructive" }),
+      onSettled: () => setDeletingId(null),
+    });
   };
 
   return (
@@ -123,7 +141,7 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
                 <th className="px-3 py-2 text-right">Total</th>
                 <th className="px-3 py-2 text-left">Status</th>
                 <th className="px-3 py-2 text-left">Date</th>
-                <th className="px-3 py-2 text-right">Action</th>
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -138,21 +156,45 @@ function JobEstimatesCard({ jobId }: { jobId: number }) {
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{formatDate(est.createdAt)}</td>
                   <td className="px-3 py-2.5 text-right">
-                    {est.status !== "approved" && (
+                    <div className="flex items-center justify-end gap-1">
                       <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleApprove(est.id)}
-                        disabled={approvingId === est.id}
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Edit estimate"
+                        onClick={() => (window.location.href = `/jobs/${jobId}/estimate`)}
                       >
-                        {approvingId === est.id ? (
-                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 mr-1.5 text-green-600" />
-                        )}
-                        Approve
+                        <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                    )}
+                      {est.status !== "approved" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleApprove(est.id)}
+                          disabled={approvingId === est.id}
+                        >
+                          {approvingId === est.id ? (
+                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5 mr-1 text-green-600" />
+                          )}
+                          Approve
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        title="Delete estimate"
+                        disabled={deletingId === est.id}
+                        onClick={() => handleDelete(est.id, est.title)}
+                      >
+                        {deletingId === est.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Trash2 className="w-3.5 h-3.5" />}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,7 @@ import {
   useCreateEstimate,
   useUpdateEstimate,
   useCreateEstimateItem,
+  useDeleteEstimate,
   useGetCompany,
   useListJobs,
   useListClients,
@@ -21,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Plus, Search, AlertTriangle, Loader2, Image as ImageIcon, X, Printer, Save, ChevronRight, ArrowLeft } from "lucide-react";
+import { Sparkles, Plus, Search, AlertTriangle, Loader2, Image as ImageIcon, X, Printer, Save, ChevronRight, ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 type EstimateMode = "labor_only" | "labor_and_materials";
@@ -614,9 +615,12 @@ function NewQuotePanel({ onClose, onSaved, initialJobId }: { onClose: () => void
 export default function QuotesPage() {
   const { data: estimates, isLoading } = useListEstimates({});
   const queryClient = useQueryClient();
+  const deleteEstimate = useDeleteEstimate();
+  const { toast } = useToast();
   const preselectedJobId = new URLSearchParams(window.location.search).get("jobId");
   const [showNew, setShowNew] = useState(() => !!preselectedJobId);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const filtered = estimates?.filter(e =>
     !search || e.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -626,6 +630,19 @@ export default function QuotesPage() {
   const handleSaved = () => {
     setShowNew(false);
     queryClient.invalidateQueries({ queryKey: getListEstimatesQueryKey({}) });
+  };
+
+  const handleDelete = (id: number, title: string) => {
+    if (!window.confirm(`Delete estimate "${title}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    deleteEstimate.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListEstimatesQueryKey({}) });
+        toast({ title: "Estimate deleted" });
+      },
+      onError: () => toast({ title: "Failed to delete estimate", variant: "destructive" }),
+      onSettled: () => setDeletingId(null),
+    });
   };
 
   return (
@@ -686,16 +703,44 @@ export default function QuotesPage() {
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Amount</th>
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Modified</th>
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Status</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filtered.map(est => (
-                      <tr key={est.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => est.jobId ? (window.location.href = `/jobs/${est.jobId}/estimate`) : undefined}>
+                      <tr key={est.id} className="hover:bg-muted/20">
                         <td className="px-4 py-3 font-medium">{est.title}</td>
                         <td className="px-4 py-3 text-muted-foreground">{est.clientName || "Not Assigned"}</td>
                         <td className="px-4 py-3">{formatCurrency(est.total)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{formatDate(est.createdAt)}</td>
                         <td className="px-4 py-3">{estimateStatusBadge(est.status)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {est.jobId && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                title="Edit estimate"
+                                onClick={() => (window.location.href = `/jobs/${est.jobId}/estimate`)}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              title="Delete estimate"
+                              disabled={deletingId === est.id}
+                              onClick={() => handleDelete(est.id, est.title)}
+                            >
+                              {deletingId === est.id
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Trash2 className="w-3.5 h-3.5" />}
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
